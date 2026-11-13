@@ -38,7 +38,7 @@ jobs:
                   if rel is None or not rel:
                       continue
                   top = rel.split("/", 1)[0]
-                  if top in selected_dirs or rel in selected_files or rel == "README.md":
+                  if top in selected_dirs or rel in selected_files:
                       target = Path(rel)
                       if target.is_absolute() or ".." in target.parts:
                           raise SystemExit(f"Ruta insegura en ZIP: {name}")
@@ -61,6 +61,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src public package.json index.html vite.config.ts tsconfig.json .env.example APP_README.md
+          git add src public package.json index.html vite.config.ts tsconfig.json .env.example
           git diff --cached --quiet || git commit -m "Extract AXSOFIT WORLD app from source archive"
           git push
