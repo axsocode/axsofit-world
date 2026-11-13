@@ -168,6 +168,7 @@
     retry.addEventListener('click', () => location.reload());
 
     let THREE, app, database, auth;
+    let avatarBodyModel = null;
     let player, scene, camera, renderer, roomRef, myRef;
     let myUid = null;
     let playerName = 'Atleta AXSO';
@@ -200,35 +201,59 @@
 
     function applyAvatarColor(){
       if(!player)return;
-      const body=player.children[0];
-      if(body && body.material && body.material.color) body.material.color.set(avatarColor);
+      player.traverse(obj=>{
+        if(obj.isMesh && obj.userData.isBodyModel && obj.material && obj.material.color){
+          obj.material.color.set(avatarColor);
+        }
+      });
     }
 
     function makeAvatar(color, skinColor) {
       const group = new THREE.Group();
-      const bodyMat = new THREE.MeshStandardMaterial({color});
-      const skinMat = new THREE.MeshStandardMaterial({color: skinColor});
-      const darkMat = new THREE.MeshStandardMaterial({color: 0x202027});
-      const body = new THREE.Mesh(new THREE.CylinderGeometry(.38,.46,.95,16), bodyMat);
-      body.position.y = 1.22;
-      group.add(body);
-      const head = new THREE.Mesh(new THREE.SphereGeometry(.28,16,12), skinMat);
-      head.position.y = 2.0;
-      group.add(head);
-      const arms = [];
-      [-.48,.48].forEach(x => {
-        const arm = new THREE.Mesh(new THREE.CylinderGeometry(.11,.12,.72,10),skinMat);
-        arm.position.set(x,1.25,0);
-        group.add(arm);
-        arms.push(arm);
-      });
-      const legs = [];
-      [-.22,.22].forEach(x => {
-        const leg = new THREE.Mesh(new THREE.CylinderGeometry(.13,.15,.72,10), darkMat);
-        leg.position.set(x,.38,0);
-        group.add(leg);
-        legs.push(leg);
-      });
+      if(avatarBodyModel){
+        const body = avatarBodyModel.clone(true);
+        body.traverse(obj=>{
+          if(obj.isMesh){
+            obj.material = new THREE.MeshStandardMaterial({
+              color: color,
+              roughness: .72,
+              metalness: .02,
+              side: THREE.DoubleSide
+            });
+            obj.userData.isBodyModel = true;
+            obj.castShadow = true;
+            obj.receiveShadow = true;
+          }
+        });
+        group.add(body);
+        group.userData.bodyModel = body;
+      }else{
+        const bodyMat = new THREE.MeshStandardMaterial({color});
+        const skinMat = new THREE.MeshStandardMaterial({color: skinColor});
+        const darkMat = new THREE.MeshStandardMaterial({color: 0x202027});
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(.38,.46,.95,16), bodyMat);
+        body.position.y = 1.22;
+        group.add(body);
+        const head = new THREE.Mesh(new THREE.SphereGeometry(.28,16,12), skinMat);
+        head.position.y = 2.0;
+        group.add(head);
+        const arms = [];
+        [-.48,.48].forEach(x => {
+          const arm = new THREE.Mesh(new THREE.CylinderGeometry(.11,.12,.72,10),skinMat);
+          arm.position.set(x,1.25,0);
+          group.add(arm);
+          arms.push(arm);
+        });
+        const legs = [];
+        [-.22,.22].forEach(x => {
+          const leg = new THREE.Mesh(new THREE.CylinderGeometry(.13,.15,.72,10), darkMat);
+          leg.position.set(x,.38,0);
+          group.add(leg);
+          legs.push(leg);
+        });
+        group.userData.legs = legs;
+        group.userData.arms = arms;
+      }
       const ring = new THREE.Mesh(
         new THREE.RingGeometry(.52,.64,32),
         new THREE.MeshBasicMaterial({color:0xe32636,side:THREE.DoubleSide})
@@ -236,8 +261,6 @@
       ring.rotation.x = -Math.PI/2;
       ring.position.y = .025;
       group.add(ring);
-      group.userData.legs = legs;
-      group.userData.arms = arms;
       group.userData.action = '';
       group.userData.actionUntil = 0;
       return group;
@@ -361,15 +384,14 @@
       });
       const allAvatars=[player,...Object.values(remotePlayers)];
       allAvatars.forEach(avatar=>{
-        const arms=avatar.userData.arms||[];
         const active=avatar.userData.action && Date.now()<avatar.userData.actionUntil;
         if(active && avatar.userData.action==='wave'){
-          arms[0].rotation.z=-Math.sin(time*.025)*1.15-.35;
-          arms[1].rotation.z=0;
+          avatar.rotation.z=Math.sin(time*.018)*.08;
         }else if(active && avatar.userData.action==='celebrate'){
-          arms.forEach((arm,i)=>{arm.rotation.z=(i===0?-1:1)*(1.25+Math.sin(time*.02)*.18);});
+          avatar.position.y=.10+Math.abs(Math.sin(time*.018))*.18;
         }else{
-          arms.forEach((arm,i)=>{arm.rotation.z=(i===0?-.12:.12);});
+          avatar.rotation.z=0;
+          avatar.position.y=0;
           if(avatar.userData.action && Date.now()>=avatar.userData.actionUntil) avatar.userData.action='';
         }
       });
@@ -640,6 +662,19 @@
       try {
         loadText.textContent='Cargando motor 3D...';
         THREE=await import('three');
+        loadText.textContent='Cargando modelo anatómico AXSO...';
+        try{
+          const {OBJLoader}=await import('https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/OBJLoader.js');
+          const loader=new OBJLoader();
+          const loadedModel=await loader.loadAsync('./assets/AXSOFIT_Mesomorfo_172cm.obj');
+          loadedModel.rotation.x=-Math.PI/2;
+          loadedModel.position.y=-.02;
+          loadedModel.scale.setScalar(1);
+          avatarBodyModel=loadedModel;
+          console.info('Modelo anatómico AXSO cargado');
+        }catch(modelError){
+          console.warn('No se pudo cargar el modelo anatómico; se usará el avatar provisional:',modelError);
+        }
         buildGym();
         setupControls();
         if(!animationStarted){animationStarted=true;animate();}
