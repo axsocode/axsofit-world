@@ -127,7 +127,9 @@
     let myUid = null;
     let connected = false;
     let dbUpdate = null;
+    let dbPush = null;
     let dbOff = null;
+    let messagesRef = null;
     let roomId = 'AXSO_GYM';
     const remotePlayers = {};
     const keys = {};
@@ -345,15 +347,26 @@
       document.getElementById('wave').addEventListener('click',()=>notice('👋 ¡Saludos desde AXSO WORLD!'));
       document.getElementById('celebrate').addEventListener('click',()=>notice('🔥 ¡Vamos con todo!'));
       const input=document.getElementById('chatInput');
-      function sendChat(){
+      async function sendChat(){
         const value=input.value.trim();
         if(!value)return;
-        const messages=document.getElementById('messages');
-        const line=document.createElement('div');
-        line.textContent='Tú: '+value;
-        messages.appendChild(line);
-        messages.scrollTop=messages.scrollHeight;
+        if(!connected || !messagesRef || !dbPush || !myUid){
+          notice('El chat compartido aún no está conectado.');
+          return;
+        }
         input.value='';
+        try{
+          await dbPush(messagesRef,{
+            uid:myUid,
+            name:'Jugador '+myUid.slice(0,5),
+            text:value,
+            sentAt:Date.now()
+          });
+        }catch(error){
+          console.error('Error enviando mensaje:',error);
+          notice('No se pudo enviar el mensaje. Revisa las reglas de Firebase.');
+          input.value=value;
+        }
       }
       document.getElementById('sendChat').addEventListener('click',sendChat);
       input.addEventListener('keydown',e=>{if(e.key==='Enter')sendChat();});
@@ -371,6 +384,7 @@
         auth=authModule.getAuth(app);
         database=dbModule.getDatabase(app);
         dbUpdate=dbModule.update;
+        dbPush=dbModule.push;
         dbOff=dbModule.off;
         const credential=await authModule.signInAnonymously(auth);
         myUid=credential.user.uid;
@@ -388,6 +402,7 @@
     async function joinRoom(dbModule,newRoom) {
       if(!myUid)return;
       if(roomRef && dbOff) dbOff(roomRef);
+      if(messagesRef && dbOff) dbOff(messagesRef);
       if(myRef){
         try{await dbModule.remove(myRef);}catch(e){}
       }
@@ -421,6 +436,24 @@
           }
         });
         onlineLabel.textContent=String(count+(myUid?1:0));
+      });
+      messagesRef=dbModule.ref(database,`rooms/${roomId}/messages`);
+      dbModule.onValue(messagesRef,snapshot=>{
+        const data=snapshot.val()||{};
+        const list=Object.values(data)
+          .filter(message=>message && typeof message.text==='string')
+          .sort((a,b)=>(a.sentAt||0)-(b.sentAt||0))
+          .slice(-30);
+        const container=document.getElementById('messages');
+        container.replaceChildren();
+        list.forEach(message=>{
+          const line=document.createElement('div');
+          const sender=message.uid===myUid?'Tú':(message.name||'Jugador');
+          line.textContent=sender+': '+message.text;
+          container.appendChild(line);
+        });
+        if(!list.length) container.textContent='Todavía no hay mensajes. ¡Saluda a la sala!';
+        container.scrollTop=container.scrollHeight;
       });
     }
 
