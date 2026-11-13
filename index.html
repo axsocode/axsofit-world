@@ -58,6 +58,9 @@
     #profileNameInput{width:100%;margin:8px 0 12px;padding:12px;background:#292932;color:#fff;border:1px solid #555;border-radius:9px}
     .profileActions{display:flex;gap:8px}.profileActions button{flex:1}
     .trainingBox{background:#25252e;border:1px solid #444;border-radius:11px;padding:12px;margin:12px 0}
+    #bodySaveMessage{font-size:11px;color:#9fd9ae;margin-top:7px}
+    .trainingBox p{font-size:10px;color:#aaa}
+    .trainingBox input::placeholder{color:#777}
     .trainingBox h3{font-size:12px;letter-spacing:1px;margin:0 0 10px;color:#f0c96b}
     .trainingBox label{display:block;font-size:11px;color:#bbb;margin:7px 0 4px}
     .trainingBox input,.trainingBox select{box-sizing:border-box;background:#17171e;color:white;border:1px solid #555;border-radius:8px;padding:10px;width:100%;min-width:0}
@@ -126,6 +129,30 @@
       <label for="profileNameInput">Nombre de jugador</label>
       <input id="profileNameInput" maxlength="20" placeholder="Tu nombre de jugador" autocomplete="nickname">
       <div class="roomlabel">Color del avatar</div>
+      <div class="trainingBox">
+        <h3>DATOS CORPORALES Y SALUD</h3>
+        <div class="trainingInputs">
+          <div><label for="bodySex">Sexo para fórmula metabólica</label><select id="bodySex"><option value="">Seleccionar</option><option value="male">Hombre</option><option value="female">Mujer</option></select></div>
+          <div><label for="bodyAge">Edad (años)</label><input id="bodyAge" type="number" min="18" max="100" placeholder="Edad"></div>
+          <div><label for="bodyHeight">Altura (cm)</label><input id="bodyHeight" type="number" min="100" max="230" step="0.1" placeholder="172"></div>
+          <div><label for="bodyWeight">Peso (kg)</label><input id="bodyWeight" type="number" min="30" max="300" step="0.1" placeholder="75.3"></div>
+          <div><label for="bodyRestHR">FC reposo (lpm)</label><input id="bodyRestHR" type="number" min="30" max="120" placeholder="60"></div>
+          <div><label for="bodyFat">Grasa corporal (%)</label><input id="bodyFat" type="number" min="2" max="70" step="0.1" placeholder="18"></div>
+          <div><label for="bodyMuscle">Masa muscular (%)</label><input id="bodyMuscle" type="number" min="5" max="80" step="0.1" placeholder="40"></div>
+          <div><label for="bodyWaist">Cintura (cm)</label><input id="bodyWaist" type="number" min="30" max="200" step="0.1"></div>
+          <div><label for="bodyHip">Cadera (cm)</label><input id="bodyHip" type="number" min="30" max="200" step="0.1"></div>
+          <div><label for="bodyChest">Pecho (cm)</label><input id="bodyChest" type="number" min="30" max="200" step="0.1"></div>
+          <div><label for="bodyArm">Brazo (cm)</label><input id="bodyArm" type="number" min="10" max="100" step="0.1"></div>
+          <div><label for="bodyThigh">Muslo (cm)</label><input id="bodyThigh" type="number" min="20" max="120" step="0.1"></div>
+        </div>
+        <div class="profileStats">
+          <div class="profileStat"><strong id="bodyBMI">—</strong><span>IMC</span></div>
+          <div class="profileStat"><strong id="bodyBMR">—</strong><span>METABOLISMO BASAL · KCAL/DÍA</span></div>
+        </div>
+        <p>Metabolismo basal estimado mediante Mifflin–St Jeor. No sustituye una medición clínica. IMC es orientativo y no distingue masa muscular de grasa.</p>
+        <button id="saveBodyData" style="width:100%">GUARDAR DATOS CORPORALES</button>
+        <div id="bodySaveMessage"></div>
+      </div>
       <div class="profileColors">
         <button type="button" class="colorChoice selected" data-color="#e32636" style="background:#e32636" aria-label="Rojo"></button>
         <button type="button" class="colorChoice" data-color="#3987e8" style="background:#3987e8" aria-label="Azul"></button>
@@ -216,6 +243,7 @@
     let profileRef = null;
     let trainingRef = null;
     let athleteStats = {xp:0,level:1,workouts:0,minutes:0,streak:0,lastTrainingDate:''};
+    let bodyMetrics = {};
     let connected = false;
     let dbUpdate = null;
     let dbPush = null;
@@ -614,6 +642,7 @@
         profileSaveState.textContent='';
         profileModal.style.display='flex';
         updateAthleteStatsUI();
+        loadBodyMetricsForm();
         await loadTrainingHistory();
       });
       document.getElementById('cancelProfile').addEventListener('click',()=>{
@@ -703,6 +732,49 @@
           notice('Entrenamiento guardado · +'+xp+' XP');
         }catch(error){console.warn('Registro entrenamiento:',error);message.textContent='No se pudo guardar. Revisa las reglas de Firebase.';}
       });
+      const bodyMetricIds=['bodySex','bodyAge','bodyHeight','bodyWeight','bodyRestHR','bodyFat','bodyMuscle','bodyWaist','bodyHip','bodyChest','bodyArm','bodyThigh'];
+      function calculateBodyResults(data){
+        const h=Number(data.height),w=Number(data.weight),age=Number(data.age);
+        const bmi=h>0&&w>0?(w/((h/100)**2)):null;
+        let bmr=null;
+        if(h>0&&w>0&&age>0&&data.sex){
+          bmr=10*w+6.25*h-5*age+(data.sex==='male'?5:-161);
+        }
+        return {bmi,bmr};
+      }
+      function refreshBodyCalculations(){
+        const data={};
+        bodyMetricIds.forEach(id=>{const el=document.getElementById(id);data[id.replace('body','').toLowerCase()]=el.value;});
+        const r=calculateBodyResults({sex:data.sex,age:data.age,height:data.height,weight:data.weight});
+        document.getElementById('bodyBMI').textContent=r.bmi?r.bmi.toFixed(1):'—';
+        document.getElementById('bodyBMR').textContent=r.bmr?Math.round(r.bmr).toLocaleString('es-ES'):'—';
+      }
+      function loadBodyMetricsForm(){
+        const m=bodyMetrics||{};
+        const map={bodySex:'sex',bodyAge:'age',bodyHeight:'height',bodyWeight:'weight',bodyRestHR:'restHR',bodyFat:'bodyFat',bodyMuscle:'musclePct',bodyWaist:'waist',bodyHip:'hip',bodyChest:'chest',bodyArm:'arm',bodyThigh:'thigh'};
+        Object.entries(map).forEach(([id,key])=>{document.getElementById(id).value=m[key]??'';});
+        refreshBodyCalculations();
+      }
+      bodyMetricIds.forEach(id=>document.getElementById(id).addEventListener('input',refreshBodyCalculations));
+      document.getElementById('saveBodyData').addEventListener('click',async()=>{
+        const message=document.getElementById('bodySaveMessage');
+        const map={bodySex:'sex',bodyAge:'age',bodyHeight:'height',bodyWeight:'weight',bodyRestHR:'restHR',bodyFat:'bodyFat',bodyMuscle:'musclePct',bodyWaist:'waist',bodyHip:'hip',bodyChest:'chest',bodyArm:'arm',bodyThigh:'thigh'};
+        const next={};
+        Object.entries(map).forEach(([id,key])=>{const v=document.getElementById(id).value;if(v!=='')next[key]=['sex'].includes(key)?v:Number(v);});
+        const required=['age','height','weight'];
+        if(required.some(k=>!Number.isFinite(Number(next[k]))||Number(next[k])<=0)){message.textContent='Completa edad, altura y peso para calcular IMC y metabolismo basal.';return;}
+        if(!myUid||!profileRef||!dbUpdate){message.textContent='Firebase no conectado. No se han guardado los datos.';return;}
+        const results=calculateBodyResults(next);
+        next.bmi=results.bmi?Number(results.bmi.toFixed(1)):null;
+        next.bmr=results.bmr?Math.round(results.bmr):null;
+        next.updatedAt=Date.now();
+        try{
+          await dbUpdate(profileRef,{bodyMetrics:next,updatedAt:Date.now()});
+          bodyMetrics=next;
+          message.textContent='Datos corporales guardados. IMC: '+(next.bmi??'—')+' · TMB: '+(next.bmr??'Pendiente de sexo');
+          notice('Perfil corporal actualizado.');
+        }catch(error){console.warn('Datos corporales:',error);message.textContent='No se pudo guardar. Comprueba las reglas de Firebase.';}
+      });
       async function sendChat(){
         const value=input.value.trim();
         if(!value)return;
@@ -754,6 +826,7 @@
             if(typeof savedProfile.name==='string' && savedProfile.name.trim()) playerName=savedProfile.name.slice(0,20);
             if(typeof savedProfile.avatarColor==='string' && /^#[0-9a-fA-F]{6}$/.test(savedProfile.avatarColor)) avatarColor=savedProfile.avatarColor;
             athleteStats={...athleteStats,...(savedProfile.stats||{})};
+            bodyMetrics=savedProfile.bodyMetrics||{};
             updateAthleteStatsUI();
             document.getElementById('playerNameLabel').textContent=playerName;
             try{localStorage.setItem('axsofitPlayerName',playerName);localStorage.setItem('axsofitAvatarColor',avatarColor);}catch(error){}
