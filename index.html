@@ -41,7 +41,7 @@
     #loading p{font-size:13px;color:#bbb;line-height:1.5}
     #loading button{margin-top:10px}
     #online{color:#79e0a1}
-    #profileBtn{position:fixed;top:58px;right:12px;z-index:9;pointer-events:auto;margin:0;padding:8px 11px;font-size:11px;box-shadow:0 3px 12px #0009}
+    #profileBtn{position:fixed;top:72px;left:12px;z-index:15;pointer-events:auto;margin:0;padding:11px 14px;font-size:12px;display:block!important;visibility:visible!important;opacity:1!important;box-shadow:0 3px 14px #000b}
     .playerinfo{padding-top:0}
     #profileModal{position:fixed;z-index:30;inset:0;background:#000b;display:none;align-items:center;justify-content:center;padding:20px}
     #profileModal .profileCard{width:min(330px,100%);background:#1b1b23;border:1px solid #555;border-radius:16px;padding:20px;box-shadow:0 12px 40px #000a}
@@ -57,6 +57,7 @@
 </head>
 <body>
   <div id="game"></div>
+  <button id="profileBtn" class="secondary">✏️ MI PERFIL</button>
 
   <div class="hud top">
     <div>
@@ -66,7 +67,6 @@
     <div class="playerinfo">
       <div><span class="level">NIVEL 01 · COBRE</span></div>
       <div id="playerNameLabel">Atleta AXSO</div>
-      <button id="profileBtn" class="secondary">✏️ MI PERFIL</button>
       <div id="connection" class="pill">Conectando...</div>
       <div><span id="online">0</span> jugadores en sala</div>
     </div>
