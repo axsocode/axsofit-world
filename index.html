@@ -228,12 +228,12 @@
             obj.receiveShadow = true;
           }
         });
-        // El GLB conserva el origen del esqueleto; elevamos ligeramente la malla
-        // respecto al plano del suelo para compensar el margen inferior del rig.
-        // El desplazamiento se aplica dentro del pivote para mantener intactos los huesos.
+        // El GLB ya fue normalizado para apoyar los pies en Y=0.
+        // No aplicar desplazamientos verticales adicionales: hunden o elevan
+        // el avatar y desalinean a jugadores y NPC respecto al plano del gimnasio.
         const bodyPivot = new THREE.Group();
-        bodyPivot.position.y = 1.0;
-        body.position.y = -0.40;
+        bodyPivot.position.set(0,0,0);
+        body.position.set(0,0,0);
         bodyPivot.add(body);
         group.add(bodyPivot);
         const mixer = new THREE.AnimationMixer(body);
@@ -416,12 +416,12 @@
         player.position.z += dz/Math.max(1,length)*speed;
         player.position.x = Math.max(-10.5,Math.min(10.5,player.position.x));
         player.position.z = Math.max(-10.5,Math.min(10.5,player.position.z));
-        player.rotation.y = Math.atan2(dx,dz);
+        player.rotation.y = Math.atan2(dx,dz) + Math.PI;
         const legs=player.userData.legs||[];
         legs.forEach((leg,i)=>leg.rotation.x=Math.sin(time*.012+i*Math.PI)*.35);
       }
       const npcs=scene.userData.npcs||[];
-      npcs.forEach((npc,i)=>{npc.position.y=.035+Math.sin(time*.002+i)*.035;});
+      npcs.forEach(npc=>{npc.position.y=0;});
       Object.values(remotePlayers).forEach(avatar=>{
         if(avatar.userData.target) avatar.position.lerp(avatar.userData.target,.22);
       });
