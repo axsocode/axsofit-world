@@ -44,7 +44,15 @@
     #profileBtn{position:fixed;top:72px;left:12px;z-index:15;pointer-events:auto;margin:0;padding:11px 14px;font-size:12px;display:block!important;visibility:visible!important;opacity:1!important;box-shadow:0 3px 14px #000b}
     .playerinfo{padding-top:0}
     #profileModal{position:fixed;z-index:30;inset:0;background:#000b;display:none;align-items:center;justify-content:center;padding:20px}
-    #profileModal .profileCard{width:min(330px,100%);background:#1b1b23;border:1px solid #555;border-radius:16px;padding:20px;box-shadow:0 12px 40px #000a}
+    #profileModal .profileCard{width:min(350px,100%);max-height:88vh;overflow:auto;background:#1b1b23;border:1px solid #555;border-radius:16px;padding:20px;box-shadow:0 12px 40px #000a}
+    .profileColors{display:flex;gap:10px;margin:10px 0 16px}
+    .colorChoice{width:34px;height:34px;border:3px solid #ffffff55;border-radius:50%;padding:0}
+    .colorChoice.selected{outline:2px solid white;outline-offset:3px}
+    .profileStats{display:flex;gap:8px;margin:12px 0}
+    .profileStat{flex:1;background:#292932;border-radius:10px;padding:10px;text-align:center}
+    .profileStat strong{display:block;font-size:18px;color:#f0c96b}
+    .profileStat span{font-size:10px;color:#bbb}
+    #profileSaveState{font-size:11px;color:#9fd9ae;min-height:16px;margin-top:8px}
     #profileModal h2{margin:0 0 8px;font-size:19px}
     #profileModal p{font-size:12px;color:#bbb;line-height:1.5}
     #profileNameInput{width:100%;margin:8px 0 12px;padding:12px;background:#292932;color:#fff;border:1px solid #555;border-radius:9px}
@@ -106,12 +114,27 @@
   <div id="profileModal">
     <div class="profileCard">
       <h2>MI IDENTIDAD AXSO</h2>
-      <p>Elige cómo te verán los demás jugadores en el chat de tu sala.</p>
+      <p>Personaliza tu identidad dentro del mundo virtual.</p>
+      <label for="profileNameInput">Nombre de jugador</label>
       <input id="profileNameInput" maxlength="20" placeholder="Tu nombre de jugador" autocomplete="nickname">
+      <div class="roomlabel">Color del avatar</div>
+      <div class="profileColors">
+        <button type="button" class="colorChoice selected" data-color="#e32636" style="background:#e32636" aria-label="Rojo"></button>
+        <button type="button" class="colorChoice" data-color="#3987e8" style="background:#3987e8" aria-label="Azul"></button>
+        <button type="button" class="colorChoice" data-color="#35b879" style="background:#35b879" aria-label="Verde"></button>
+        <button type="button" class="colorChoice" data-color="#a56be0" style="background:#a56be0" aria-label="Morado"></button>
+        <button type="button" class="colorChoice" data-color="#e6a23c" style="background:#e6a23c" aria-label="Dorado"></button>
+      </div>
+      <div class="profileStats">
+        <div class="profileStat"><strong id="profileLevel">01</strong><span>NIVEL</span></div>
+        <div class="profileStat"><strong id="profileXp">0</strong><span>XP</span></div>
+        <div class="profileStat"><strong id="profileRank">COBRE</strong><span>RANGO</span></div>
+      </div>
       <div class="profileActions">
         <button id="saveProfile">GUARDAR</button>
         <button id="cancelProfile" class="secondary">CANCELAR</button>
       </div>
+      <div id="profileSaveState"></div>
     </div>
   </div>
 
@@ -148,6 +171,10 @@
     let player, scene, camera, renderer, roomRef, myRef;
     let myUid = null;
     let playerName = 'Atleta AXSO';
+    let avatarColor = '#e32636';
+    let dbGet = null;
+    let dbSet = null;
+    let profileRef = null;
     let connected = false;
     let dbUpdate = null;
     let dbPush = null;
@@ -170,6 +197,12 @@
       appId: "1:783631768186:web:acd68651ed7b1b2484f9c3",
       measurementId: "G-NB3Q5K4FFR"
     };
+
+    function applyAvatarColor(){
+      if(!player)return;
+      const body=player.children[0];
+      if(body && body.material && body.material.color) body.material.color.set(avatarColor);
+    }
 
     function makeAvatar(color, skinColor) {
       const group = new THREE.Group();
@@ -373,13 +406,26 @@
       const profileModal=document.getElementById('profileModal');
       const profileInput=document.getElementById('profileNameInput');
       const profileLabel=document.getElementById('playerNameLabel');
+      const profileSaveState=document.getElementById('profileSaveState');
+      document.querySelectorAll('.colorChoice').forEach(button=>{
+        button.addEventListener('click',()=>{
+          avatarColor=button.dataset.color;
+          document.querySelectorAll('.colorChoice').forEach(item=>item.classList.toggle('selected',item===button));
+          applyAvatarColor();
+        });
+      });
       try{
         const savedName=localStorage.getItem('axsofitPlayerName');
         if(savedName) playerName=savedName;
+        const savedColor=localStorage.getItem('axsofitAvatarColor');
+        if(savedColor) avatarColor=savedColor;
       }catch(error){}
       profileLabel.textContent=playerName;
+      document.querySelectorAll('.colorChoice').forEach(item=>item.classList.toggle('selected',item.dataset.color===avatarColor));
+      applyAvatarColor();
       document.getElementById('profileBtn').addEventListener('click',()=>{
         profileInput.value=playerName;
+        profileSaveState.textContent='';
         profileModal.style.display='flex';
         profileInput.focus();
       });
@@ -394,9 +440,20 @@
         }
         playerName=cleanName;
         profileLabel.textContent=playerName;
-        try{localStorage.setItem('axsofitPlayerName',playerName);}catch(error){}
+        try{
+          localStorage.setItem('axsofitPlayerName',playerName);
+          localStorage.setItem('axsofitAvatarColor',avatarColor);
+        }catch(error){}
+        if(profileRef && dbSet){
+          profileSaveState.textContent='Guardando en la nube...';
+          dbSet(profileRef,{name:playerName,avatarColor:avatarColor,level:1,xp:0,updatedAt:Date.now()})
+            .then(()=>{profileSaveState.textContent='Perfil guardado en Firebase.';notice('¡Identidad AXSO guardada!');})
+            .catch(error=>{console.warn('Perfil Firebase:',error);profileSaveState.textContent='Guardado local. Firebase necesita permisos para /profiles.';notice('Perfil guardado en este dispositivo.');});
+        }else{
+          profileSaveState.textContent='Guardado en este dispositivo.';
+          notice('¡Perfil actualizado, '+playerName+'!');
+        }
         profileModal.style.display='none';
-        notice('¡Perfil actualizado, '+playerName+'!');
       });
       async function sendChat(){
         const value=input.value.trim();
@@ -436,9 +493,24 @@
         database=dbModule.getDatabase(app);
         dbUpdate=dbModule.update;
         dbPush=dbModule.push;
+        dbGet=dbModule.get;
+        dbSet=dbModule.set;
         dbOff=dbModule.off;
         const credential=await authModule.signInAnonymously(auth);
         myUid=credential.user.uid;
+        profileRef=dbModule.ref(database,'profiles/'+myUid);
+        try{
+          const profileSnapshot=await dbGet(profileRef);
+          const savedProfile=profileSnapshot.val();
+          if(savedProfile){
+            if(typeof savedProfile.name==='string' && savedProfile.name.trim()) playerName=savedProfile.name.slice(0,20);
+            if(typeof savedProfile.avatarColor==='string' && /^#[0-9a-fA-F]{6}$/.test(savedProfile.avatarColor)) avatarColor=savedProfile.avatarColor;
+            document.getElementById('playerNameLabel').textContent=playerName;
+            try{localStorage.setItem('axsofitPlayerName',playerName);localStorage.setItem('axsofitAvatarColor',avatarColor);}catch(error){}
+            document.querySelectorAll('.colorChoice').forEach(item=>item.classList.toggle('selected',item.dataset.color===avatarColor));
+            applyAvatarColor();
+          }
+        }catch(profileError){console.warn('No se pudo leer el perfil cloud:',profileError);}
         await joinRoom(dbModule,roomId);
         connectionLabel.textContent='Firebase conectado';
         connectionLabel.style.color='#79e0a1';
