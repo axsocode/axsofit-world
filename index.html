@@ -757,14 +757,23 @@
           const gltf = await new Promise((resolve,reject)=>loader.parse(glbData,'',resolve,reject));
           avatarBodyModel = gltf.scene;
           avatarAnimations = gltf.animations || [];
-          // Ajustar escala y apoyo de pies sin alterar el esqueleto ni los clips.
+          // El rig AXSOFIT fue generado con eje Z vertical. Three.js usa Y vertical:
+          // rotamos el nodo raíz completo ANTES de calcular las dimensiones.
+          avatarBodyModel.rotation.x = -Math.PI / 2;
           avatarBodyModel.updateMatrixWorld(true);
+
+          // Escala usando la altura real ya orientada y apoyo exacto de los pies.
           const bounds = new THREE.Box3().setFromObject(avatarBodyModel);
           const size = bounds.getSize(new THREE.Vector3());
           const center = bounds.getCenter(new THREE.Vector3());
-          const scale = 1.75 / Math.max(size.y,0.001);
+          const targetHeight = 1.75;
+          const scale = targetHeight / Math.max(size.y,0.001);
           avatarBodyModel.scale.setScalar(scale);
-          avatarBodyModel.position.set(-center.x*scale,-bounds.min.y*scale,-center.z*scale);
+          avatarBodyModel.position.set(
+            -center.x * scale,
+            -bounds.min.y * scale,
+            -center.z * scale
+          );
           avatarBodyModel.updateMatrixWorld(true);
           console.info('AXSOFIT GLB riggeado cargado', avatarAnimations.map(a=>a.name));
           if(!avatarAnimations.some(a=>a.name==='Caminar_Loop') ||
