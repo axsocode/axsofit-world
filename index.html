@@ -45,6 +45,17 @@
     .playerinfo{padding-top:0}
     #profileModal{position:fixed;z-index:30;inset:0;background:#000b;display:none;align-items:center;justify-content:center;padding:20px}
     #profileModal .profileCard{width:min(350px,100%);max-height:88vh;overflow:auto;background:#1b1b23;border:1px solid #555;border-radius:16px;padding:20px;box-shadow:0 12px 40px #000a}
+    #profileModal .profileCard{width:min(560px,100%);max-height:92vh}
+    .profileTabs{display:flex;gap:6px;overflow-x:auto;padding:8px 0 12px;position:sticky;top:-20px;background:#1b1b23;z-index:3}
+    .profileTab{flex:0 0 auto;background:#30303a;color:#ddd;border:1px solid #555;border-radius:9px;padding:9px 11px;font-size:10px}
+    .profileTab.active{background:#b51f2c;border-color:#ed4755;color:#fff}
+    .profilePane{display:none}.profilePane.active{display:block}
+    .radarWrap{background:#25252e;border-radius:12px;padding:12px;margin:10px 0}
+    .radarLegend{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;color:#ddd}
+    .radarLegend span{display:flex;justify-content:space-between}
+    .featureNote{font-size:11px;color:#aaa;background:#25252e;border-radius:9px;padding:10px;margin:8px 0}
+    .profilePane h3{color:#f0c96b;font-size:13px}
+    .profilePane input,.profilePane select{max-width:100%;box-sizing:border-box}
     .profileColors{display:flex;gap:10px;margin:10px 0 16px}
     .colorChoice{width:34px;height:34px;border:3px solid #ffffff55;border-radius:50%;padding:0}
     .colorChoice.selected{outline:2px solid white;outline-offset:3px}
@@ -209,6 +220,48 @@
   </div>
 
   <script type="module">
+    // Navegación por pestañas de la ficha del atleta AXSOFIT.
+    const profileCard=document.querySelector('#profileModal .profileCard');
+    if(profileCard){
+      const original=[...profileCard.children];
+      const tabs=document.createElement('nav');tabs.className='profileTabs';tabs.setAttribute('aria-label','Secciones del perfil');
+      const paneHost=document.createElement('div');paneHost.id='profilePanes';
+      const definitions=[
+        ['metrics','MÉTRICAS'],['strength','FUERZA'],['endurance','RESISTENCIA'],['axcircuit','AXCIRCUIT'],['stats','ESTADÍSTICAS'],['identity','PERFIL']
+      ];
+      const panes={};
+      definitions.forEach(([id,label],index)=>{
+        const button=document.createElement('button');button.type='button';button.className='profileTab'+(index===0?' active':'');button.textContent=label;button.dataset.tab=id;
+        button.addEventListener('click',()=>{tabs.querySelectorAll('button').forEach(b=>b.classList.toggle('active',b===button));Object.entries(panes).forEach(([key,pane])=>pane.classList.toggle('active',key===id));});
+        tabs.append(button);
+        const pane=document.createElement('section');pane.className='profilePane'+(index===0?' active':'');pane.dataset.pane=id;panes[id]=pane;paneHost.append(pane);
+      });
+      const metricsBox=original.find(el=>el.querySelector?.('#bodyWeight'));
+      const statsBoxes=original.filter(el=>el.classList?.contains('profileStats'));
+      const trainingBoxes=original.filter(el=>el.classList?.contains('trainingBox')&&el!==metricsBox);
+      const colors=original.find(el=>el.classList?.contains('profileColors'));
+      const identityNodes=original.filter(el=>el.matches?.('h2,p,label,#profileNameInput,.roomlabel'));
+      const actions=original.find(el=>el.classList?.contains('profileActions'));
+      const saveState=original.find(el=>el.id==='profileSaveState');
+      identityNodes.forEach(el=>panes.identity.append(el));
+      if(colors)panes.identity.append(colors);
+      if(metricsBox)panes.metrics.append(metricsBox);
+      // Estadísticas generales y gráfica de capacidades.
+      statsBoxes.forEach(el=>panes.stats.append(el));
+      const radar=document.createElement('div');radar.className='radarWrap';
+      radar.innerHTML='<h3>PERFIL DE CAPACIDADES</h3><svg viewBox="0 0 320 260" width="100%" role="img" aria-label="Pentagrama de capacidades deportivas"><g fill="none" stroke="#666" stroke-width="1"><polygon points="160,25 255,94 219,205 101,205 65,94"/><polygon points="160,70 217,111 195,178 125,178 103,111"/><polygon points="160,115 179,128 171,151 149,151 141,128"/></g><polygon points="160,75 207,111 185,164 126,174 104,112" fill="#e32636" fill-opacity=".32" stroke="#f04452" stroke-width="2"/><g fill="#fff" font-size="11" text-anchor="middle"><text x="160" y="15">FUERZA</text><text x="270" y="91">RESISTENCIA</text><text x="225" y="224">RECUPERACIÓN</text><text x="95" y="224">VELOCIDAD</text><text x="48" y="91">AGILIDAD</text></g></svg><div class="radarLegend"><span>Fuerza <b>Por medir</b></span><span>Resistencia <b>Por medir</b></span><span>Recuperación <b>Por medir</b></span><span>Velocidad <b>Por medir</b></span><span>Agilidad <b>Por medir</b></span></div>';
+      panes.stats.append(radar);
+      const strength=document.createElement('div');strength.className='trainingBox';strength.innerHTML='<h3>FUERZA · SEGUIMIENTO Y RM</h3><div class="featureNote">Registra tus ejercicios, cargas y repeticiones para calcular y seguir tu repetición máxima estimada.</div><div class="trainingInputs"><div><label>Ejercicio</label><input id="strengthExercise" placeholder="Sentadilla, press banca..."></div><div><label>Peso levantado (kg)</label><input id="strengthLoad" type="number" min="0" step=".5"></div><div><label>Repeticiones</label><input id="strengthReps" type="number" min="1" max="20"></div><div><label>Fecha</label><input id="strengthDate" type="date"></div></div><button id="saveStrengthEntry" style="width:100%;margin-top:10px">GUARDAR MARCA Y CALCULAR RM</button><div id="strengthRMResult" class="featureNote">Aún no hay marcas registradas.</div><h3>RUTINA DE FUERZA</h3><textarea id="strengthRoutine" rows="3" placeholder="Describe tu rutina, series, repeticiones y descansos..." style="width:100%;box-sizing:border-box;background:#17171e;color:white;border:1px solid #555;border-radius:8px;padding:10px"></textarea><button id="saveStrengthRoutine" style="width:100%;margin-top:8px">GUARDAR RUTINA</button><div id="strengthRoutineMessage"></div>';
+      panes.strength.append(strength);
+      const endurance=document.createElement('div');endurance.className='trainingBox';endurance.innerHTML='<h3>RESISTENCIA</h3><div class="featureNote">Seguimiento de carrera, ciclismo, remo y trabajo cardiovascular.</div><div class="trainingInputs"><div><label>Modalidad</label><select id="enduranceType"><option>Carrera</option><option>Ciclismo</option><option>Spinning</option><option>Remo</option><option>Natación</option><option>Otro</option></select></div><div><label>Duración (min)</label><input id="enduranceMinutes" type="number" min="1"></div><div><label>Distancia (km)</label><input id="enduranceDistance" type="number" min="0" step=".01"></div><div><label>FC media (lpm)</label><input id="enduranceHR" type="number" min="30" max="230"></div><div><label>Ritmo (min/km)</label><input id="endurancePace" placeholder="5:00"></div></div><button id="saveEndurance" style="width:100%;margin-top:10px">REGISTRAR RESISTENCIA</button><div id="enduranceMessage"></div></div>';
+      panes.endurance.append(endurance);
+      const circuit=document.createElement('div');circuit.className='trainingBox';circuit.innerHTML='<h3>AXCIRCUIT</h3><div class="featureNote">Registro de circuitos funcionales, estaciones, rondas y tiempos.</div><div class="trainingInputs"><div><label>Nombre del circuito</label><input id="circuitName" placeholder="AX Circuit 01"></div><div><label>Duración (min)</label><input id="circuitMinutes" type="number" min="1"></div><div><label>Rondas completadas</label><input id="circuitRounds" type="number" min="1"></div><div><label>Tiempo total (mm:ss)</label><input id="circuitTime" placeholder="18:45"></div></div><label>Estaciones / ejercicios</label><textarea id="circuitStations" rows="3" placeholder="SkiErg, burpees, farmer carry..." style="width:100%;box-sizing:border-box;background:#17171e;color:white;border:1px solid #555;border-radius:8px;padding:10px"></textarea><button id="saveCircuit" style="width:100%;margin-top:10px">REGISTRAR AXCIRCUIT</button><div id="circuitMessage"></div></div>';
+      panes.axcircuit.append(circuit);
+      trainingBoxes.forEach(el=>panes.endurance.append(el));
+      paneHost.append(actions||document.createElement('div'));if(saveState)paneHost.append(saveState);
+      profileCard.replaceChildren(original[0],tabs,paneHost);
+      profileCard.querySelector('h2').textContent='PERFIL DE ATLETA AXSOFIT';
+    }
     const loadText = document.getElementById('loadText');
     const loading = document.getElementById('loading');
     const retry = document.getElementById('retry');
