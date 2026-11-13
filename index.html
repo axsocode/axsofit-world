@@ -225,8 +225,14 @@
             obj.receiveShadow = true;
           }
         });
-        group.add(body);
+        // El pivote permite inclinar y balancear el cuerpo desde la zona de la cadera.
+        const bodyPivot = new THREE.Group();
+        bodyPivot.position.y = 1.0;
+        body.position.y -= 1.0;
+        bodyPivot.add(body);
+        group.add(bodyPivot);
         group.userData.bodyModel = body;
+        group.userData.bodyPivot = bodyPivot;
       }else{
         const bodyMat = new THREE.MeshStandardMaterial({color});
         const skinMat = new THREE.MeshStandardMaterial({color: skinColor});
@@ -385,12 +391,36 @@
       const allAvatars=[player,...Object.values(remotePlayers)];
       allAvatars.forEach(avatar=>{
         const active=avatar.userData.action && Date.now()<avatar.userData.actionUntil;
-        if(active && avatar.userData.action==='wave'){
-          avatar.rotation.z=Math.sin(time*.018)*.08;
-        }else if(active && avatar.userData.action==='celebrate'){
-          avatar.position.y=.10+Math.abs(Math.sin(time*.018))*.18;
+        const pivot=avatar.userData.bodyPivot;
+        let walking=false;
+        if(avatar===player){
+          walking=length>.08;
         }else{
-          avatar.rotation.z=0;
+          const previous=avatar.userData.previousPosition;
+          if(previous){
+            const distance=avatar.position.distanceTo(previous);
+            walking=distance>.012;
+          }
+          avatar.userData.previousPosition=avatar.position.clone();
+        }
+
+        // Marcha: rebote suave, inclinación hacia delante y balanceo lateral.
+        if(pivot){
+          const walkPhase=time*.014;
+          const walkAmount=walking && !active ? 1 : 0;
+          const bob=walking && !active ? Math.abs(Math.sin(walkPhase))*.055 : 0;
+          pivot.position.y=THREE.MathUtils.lerp(pivot.position.y, bob, .28);
+          const walkLean=walking && !active ? .045 : 0;
+          const waveLean=active && avatar.userData.action==='wave' ? .10+Math.sin(time*.018)*.035 : 0;
+          const celebrateLean=active && avatar.userData.action==='celebrate' ? -.07 : 0;
+          pivot.rotation.x=THREE.MathUtils.lerp(pivot.rotation.x,walkLean+celebrateLean,.22);
+          pivot.rotation.z=THREE.MathUtils.lerp(pivot.rotation.z,
+            (walking && !active ? Math.sin(walkPhase)*.035 : 0)+waveLean,.22);
+        }
+
+        if(active && avatar.userData.action==='celebrate'){
+          avatar.position.y=.035+Math.abs(Math.sin(time*.018))*.14;
+        }else{
           avatar.position.y=0;
           if(avatar.userData.action && Date.now()>=avatar.userData.actionUntil) avatar.userData.action='';
         }
