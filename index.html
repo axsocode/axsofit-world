@@ -228,10 +228,12 @@
             obj.receiveShadow = true;
           }
         });
-        // El pivote permite inclinar y balancear el cuerpo desde la zona de la cadera.
+        // El GLB conserva el origen del esqueleto; elevamos ligeramente la malla
+        // respecto al plano del suelo para compensar el margen inferior del rig.
+        // El desplazamiento se aplica dentro del pivote para mantener intactos los huesos.
         const bodyPivot = new THREE.Group();
         bodyPivot.position.y = 1.0;
-        body.position.y -= 1.0;
+        body.position.y = -0.65;
         bodyPivot.add(body);
         group.add(bodyPivot);
         const mixer = new THREE.AnimationMixer(body);
