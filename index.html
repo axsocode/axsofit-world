@@ -41,6 +41,13 @@
     #loading p{font-size:13px;color:#bbb;line-height:1.5}
     #loading button{margin-top:10px}
     #online{color:#79e0a1}
+    #profileBtn{margin-top:5px;padding:6px 9px;font-size:10px}
+    #profileModal{position:fixed;z-index:30;inset:0;background:#000b;display:none;align-items:center;justify-content:center;padding:20px}
+    #profileModal .profileCard{width:min(330px,100%);background:#1b1b23;border:1px solid #555;border-radius:16px;padding:20px;box-shadow:0 12px 40px #000a}
+    #profileModal h2{margin:0 0 8px;font-size:19px}
+    #profileModal p{font-size:12px;color:#bbb;line-height:1.5}
+    #profileNameInput{width:100%;margin:8px 0 12px;padding:12px;background:#292932;color:#fff;border:1px solid #555;border-radius:9px}
+    .profileActions{display:flex;gap:8px}.profileActions button{flex:1}
     @media(max-width:430px){.top{padding:10px}.brand{font-size:18px}.playerinfo{font-size:11px}#chatbox{top:78px;width:55vw}#joystick{width:112px;height:112px;bottom:78px}#knob{left:29px;top:29px}#actions{bottom:82px}#actions button{width:78px;font-size:11px;padding:9px 5px}.bottom{bottom:8px}}
   </style>
   <script type="importmap">
@@ -57,6 +64,8 @@
     </div>
     <div class="playerinfo">
       <div><span class="level">NIVEL 01 · COBRE</span></div>
+      <div id="playerNameLabel">Atleta AXSO</div>
+      <button id="profileBtn" class="secondary">✏️ MI PERFIL</button>
       <div id="connection" class="pill">Conectando...</div>
       <div><span id="online">0</span> jugadores en sala</div>
     </div>
@@ -93,6 +102,18 @@
   </div>
   <div id="notice"></div>
 
+  <div id="profileModal">
+    <div class="profileCard">
+      <h2>MI IDENTIDAD AXSO</h2>
+      <p>Elige cómo te verán los demás jugadores en el chat de tu sala.</p>
+      <input id="profileNameInput" maxlength="20" placeholder="Tu nombre de jugador" autocomplete="nickname">
+      <div class="profileActions">
+        <button id="saveProfile">GUARDAR</button>
+        <button id="cancelProfile" class="secondary">CANCELAR</button>
+      </div>
+    </div>
+  </div>
+
   <div id="loading">
     <div class="card">
       <div class="logo">AXSO<span class="red">FIT</span> WORLD</div>
@@ -125,6 +146,7 @@
     let THREE, app, database, auth;
     let player, scene, camera, renderer, roomRef, myRef;
     let myUid = null;
+    let playerName = 'Atleta AXSO';
     let connected = false;
     let dbUpdate = null;
     let dbPush = null;
@@ -347,6 +369,34 @@
       document.getElementById('wave').addEventListener('click',()=>notice('👋 ¡Saludos desde AXSO WORLD!'));
       document.getElementById('celebrate').addEventListener('click',()=>notice('🔥 ¡Vamos con todo!'));
       const input=document.getElementById('chatInput');
+      const profileModal=document.getElementById('profileModal');
+      const profileInput=document.getElementById('profileNameInput');
+      const profileLabel=document.getElementById('playerNameLabel');
+      try{
+        const savedName=localStorage.getItem('axsofitPlayerName');
+        if(savedName) playerName=savedName;
+      }catch(error){}
+      profileLabel.textContent=playerName;
+      document.getElementById('profileBtn').addEventListener('click',()=>{
+        profileInput.value=playerName;
+        profileModal.style.display='flex';
+        profileInput.focus();
+      });
+      document.getElementById('cancelProfile').addEventListener('click',()=>{
+        profileModal.style.display='none';
+      });
+      document.getElementById('saveProfile').addEventListener('click',()=>{
+        const cleanName=profileInput.value.trim().replace(/[<>]/g,'').slice(0,20);
+        if(cleanName.length<2){
+          notice('El nombre debe tener al menos 2 caracteres.');
+          return;
+        }
+        playerName=cleanName;
+        profileLabel.textContent=playerName;
+        try{localStorage.setItem('axsofitPlayerName',playerName);}catch(error){}
+        profileModal.style.display='none';
+        notice('¡Perfil actualizado, '+playerName+'!');
+      });
       async function sendChat(){
         const value=input.value.trim();
         if(!value)return;
@@ -358,7 +408,7 @@
         try{
           await dbPush(messagesRef,{
             uid:myUid,
-            name:'Jugador '+myUid.slice(0,5),
+            name:playerName,
             text:value,
             sentAt:Date.now()
           });
@@ -448,7 +498,7 @@
         container.replaceChildren();
         list.forEach(message=>{
           const line=document.createElement('div');
-          const sender=message.uid===myUid?'Tú':(message.name||'Jugador');
+          const sender=message.uid===myUid?playerName+' (Tú)':(message.name||'Jugador');
           line.textContent=sender+': '+message.text;
           container.appendChild(line);
         });
