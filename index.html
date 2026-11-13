@@ -423,7 +423,18 @@
       const npcs=scene.userData.npcs||[];
       npcs.forEach(npc=>{npc.position.y=0;});
       Object.values(remotePlayers).forEach(avatar=>{
-        if(avatar.userData.target) avatar.position.lerp(avatar.userData.target,.22);
+        if(avatar.userData.target){
+          const previous=avatar.position.clone();
+          avatar.position.lerp(avatar.userData.target,.22);
+          const moveX=avatar.position.x-previous.x;
+          const moveZ=avatar.position.z-previous.z;
+          if(Math.hypot(moveX,moveZ)>.002){
+            const targetYaw=Math.atan2(moveX,moveZ)+Math.PI;
+            let angle=targetYaw-avatar.rotation.y;
+            angle=Math.atan2(Math.sin(angle),Math.cos(angle));
+            avatar.rotation.y+=angle*.28;
+          }
+        }
       });
       const allAvatars=[player,...Object.values(remotePlayers)];
       allAvatars.forEach(avatar=>{
