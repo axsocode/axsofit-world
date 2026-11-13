@@ -169,6 +169,9 @@
 
     let THREE, app, database, auth;
     let avatarBodyModel = null;
+    let avatarAnimations = [];
+    let SkeletonUtils = null;
+    let lastFrameTime = 0;
     let player, scene, camera, renderer, roomRef, myRef;
     let myUid = null;
     let playerName = 'Atleta AXSO';
@@ -211,7 +214,7 @@
     function makeAvatar(color, skinColor) {
       const group = new THREE.Group();
       if(avatarBodyModel){
-        const body = avatarBodyModel.clone(true);
+        const body = SkeletonUtils.clone(avatarBodyModel);
         body.traverse(obj=>{
           if(obj.isMesh){
             obj.material = new THREE.MeshStandardMaterial({
@@ -231,6 +234,14 @@
         body.position.y -= 1.0;
         bodyPivot.add(body);
         group.add(bodyPivot);
+        const mixer = new THREE.AnimationMixer(body);
+        const actions = {};
+        avatarAnimations.forEach(clip => { actions[clip.name] = mixer.clipAction(clip); });
+        group.userData.mixer = mixer;
+        group.userData.actions = actions;
+        group.userData.currentClip = '';
+        group.userData.bodyModel = body;
+
         group.userData.bodyModel = body;
         group.userData.bodyPivot = bodyPivot;
       }else{
@@ -272,9 +283,31 @@
       return group;
     }
 
-    function playAvatarAction(avatar,action,until) {
+    function setAvatarClip(avatar, clip, oneShot=false, startAt=0) {
+      const actions = avatar.userData.actions || {};
+      const names = { walk:'Caminar_Loop', wave:'Saludar', celebrate:'Celebrar_Salto' };
+      const name = names[clip] || '';
+      const next = actions[name];
+      if (!next) return;
+      if (avatar.userData.currentClip === name && !oneShot) return;
+      const previous = actions[avatar.userData.currentClip];
+      if (previous && previous !== next) previous.fadeOut(.16);
+      next.reset().fadeIn(.16);
+      next.setLoop(oneShot ? THREE.LoopOnce : THREE.LoopRepeat, oneShot ? 1 : Infinity);
+      next.clampWhenFinished = oneShot;
+      if (startAt) {
+        const elapsed = Math.max(0,(Date.now()-startAt)/1000);
+        next.time = oneShot ? Math.min(elapsed,Math.max(0,next.getClip().duration-.01)) : elapsed % Math.max(next.getClip().duration,.001);
+      }
+      next.play();
+      avatar.userData.currentClip = name;
+    }
+
+    function playAvatarAction(avatar,action,until,actionAt=Date.now()) {
       avatar.userData.action=action||'';
+      avatar.userData.actionAt=Number(actionAt)||Date.now();
       avatar.userData.actionUntil=Number(until)||0;
+      setAvatarClip(avatar, action, true, avatar.userData.actionAt);
     }
 
     function addBox(x,y,z,w,h,d,color) {
@@ -370,6 +403,8 @@
       requestAnimationFrame(animate);
       if (!renderer || !scene || !camera || !player) return;
 
+      const delta = lastFrameTime ? Math.min((time-lastFrameTime)/1000,.05) : 0;
+      lastFrameTime = time;
       const speed = .075;
       const dx = moveX + (keys.ArrowRight||keys.d ? 1:0) - (keys.ArrowLeft||keys.a ? 1:0);
       const dz = moveZ + (keys.ArrowDown||keys.s ? 1:0) - (keys.ArrowUp||keys.w ? 1:0);
@@ -390,6 +425,7 @@
       });
       const allAvatars=[player,...Object.values(remotePlayers)];
       allAvatars.forEach(avatar=>{
+        if(avatar.userData.mixer) avatar.userData.mixer.update(delta);
         const active=avatar.userData.action && Date.now()<avatar.userData.actionUntil;
         const pivot=avatar.userData.bodyPivot;
         let walking=false;
@@ -404,13 +440,23 @@
           avatar.userData.previousPosition=avatar.position.clone();
         }
 
-        // Marcha: rebote suave, inclinación hacia delante y balanceo lateral.
+        if (!active) {
+          const desiredClip = walking ? 'walk' : '';
+          if (desiredClip) setAvatarClip(avatar, desiredClip, false);
+          else if (avatar.userData.currentClip === 'Caminar_Loop') {
+            const current = avatar.userData.actions?.[avatar.userData.currentClip];
+            if (current) current.fadeOut(.16);
+            avatar.userData.currentClip = '';
+          }
+          if (avatar.userData.action && Date.now()>=avatar.userData.actionUntil) avatar.userData.action='';
+        }
+        // Movimiento secundario suave para conservar la respuesta corporal.
         if(pivot){
           const walkPhase=time*.014;
-          const walkAmount=walking && !active ? 1 : 0;
+
           const bob=walking && !active ? Math.abs(Math.sin(walkPhase))*.055 : 0;
           pivot.position.y=THREE.MathUtils.lerp(pivot.position.y, bob, .28);
-          const walkLean=walking && !active ? .045 : 0;
+          const walkLean=walking && !active ? .015 : 0;
           const waveLean=active && avatar.userData.action==='wave' ? .10+Math.sin(time*.018)*.035 : 0;
           const celebrateLean=active && avatar.userData.action==='celebrate' ? -.07 : 0;
           pivot.rotation.x=THREE.MathUtils.lerp(pivot.rotation.x,walkLean+celebrateLean,.22);
@@ -643,7 +689,7 @@
           );
           if(p.actionAt && p.actionAt>=(remotePlayers[uid].userData.lastActionAt||0)){
             remotePlayers[uid].userData.lastActionAt=p.actionAt;
-            playAvatarAction(remotePlayers[uid],p.action,p.actionUntil);
+            playAvatarAction(remotePlayers[uid],p.action,p.actionUntil,p.actionAt);
           }
         });
         Object.keys(remotePlayers).forEach(uid=>{
@@ -694,31 +740,41 @@
         THREE=await import('three');
         loadText.textContent='Cargando modelo anatómico AXSO...';
         try{
-          const {OBJLoader}=await import('https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/OBJLoader.js');
-          const loader=new OBJLoader();
-          const loadedModel=await loader.loadAsync('./assets/assets/AXSOFIT_Mesomorfo_172cm.obj');
-          // El OBJ viene con el eje Z como vertical. Lo convertimos al eje Y de Three.js.
-          loadedModel.rotation.x=-Math.PI/2;
-          loadedModel.updateMatrixWorld(true);
-
-          // Normalizar el cuerpo a 1,75 m, centrarlo y apoyar los pies en y=0.
-          const modelBounds = new THREE.Box3().setFromObject(loadedModel);
-          const modelSize = modelBounds.getSize(new THREE.Vector3());
-          const modelCenter = modelBounds.getCenter(new THREE.Vector3());
-          const targetHeight = 1.75;
-          const modelScale = targetHeight / Math.max(modelSize.y, 0.001);
-          loadedModel.scale.setScalar(modelScale);
-          loadedModel.position.set(
-            -modelCenter.x * modelScale,
-            -modelBounds.min.y * modelScale,
-            -modelCenter.z * modelScale
-          );
-          loadedModel.updateMatrixWorld(true);
-
-          avatarBodyModel=loadedModel;
-          console.info('Modelo anatómico AXSO cargado y normalizado a 1,75 m');
+          loadText.textContent='Cargando esqueleto y animaciones AXSO...';
+          const [{GLTFLoader},{default:JSZip},skeletonModule] = await Promise.all([
+            import('https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js'),
+            import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm'),
+            import('https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/utils/SkeletonUtils.js')
+          ]);
+          SkeletonUtils = skeletonModule;
+          const archiveResponse = await fetch('./AXSOFIT_WORLD_Prototipo_Multijugador.zip');
+          if(!archiveResponse.ok) throw new Error('No se pudo descargar el paquete GLB ('+archiveResponse.status+')');
+          const archive = await JSZip.loadAsync(await archiveResponse.arrayBuffer());
+          const modelFile = archive.file('AXSOFIT_WORLD/public/models/axsofit-humanoid-rig.glb');
+          if(!modelFile) throw new Error('No se encontró axsofit-humanoid-rig.glb dentro del ZIP');
+          const glbData = await modelFile.async('arraybuffer');
+          const loader = new GLTFLoader();
+          const gltf = await new Promise((resolve,reject)=>loader.parse(glbData,'',resolve,reject));
+          avatarBodyModel = gltf.scene;
+          avatarAnimations = gltf.animations || [];
+          // Ajustar escala y apoyo de pies sin alterar el esqueleto ni los clips.
+          avatarBodyModel.updateMatrixWorld(true);
+          const bounds = new THREE.Box3().setFromObject(avatarBodyModel);
+          const size = bounds.getSize(new THREE.Vector3());
+          const center = bounds.getCenter(new THREE.Vector3());
+          const scale = 1.75 / Math.max(size.y,0.001);
+          avatarBodyModel.scale.setScalar(scale);
+          avatarBodyModel.position.set(-center.x*scale,-bounds.min.y*scale,-center.z*scale);
+          avatarBodyModel.updateMatrixWorld(true);
+          console.info('AXSOFIT GLB riggeado cargado', avatarAnimations.map(a=>a.name));
+          if(!avatarAnimations.some(a=>a.name==='Caminar_Loop') ||
+             !avatarAnimations.some(a=>a.name==='Saludar') ||
+             !avatarAnimations.some(a=>a.name==='Celebrar_Salto')) {
+            console.warn('Falta uno o más clips de animación esperados');
+          }
         }catch(modelError){
-          console.warn('No se pudo cargar el modelo anatómico; se usará el avatar provisional:',modelError);
+          console.error('No se pudo cargar el GLB riggeado:',modelError);
+          notice('No se pudo cargar el modelo animado. Se usará el avatar provisional.');
         }
         buildGym();
         setupControls();
