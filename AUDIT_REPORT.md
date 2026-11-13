@@ -1,68 +1,99 @@
 # AXSOFIT WORLD — Auditoría técnica inicial
 
-Fecha: 2026-11-13. Repositorio: axsocode/axsofit-world. Rama: main.
+**Fecha:** 2026-11-13  
+**Repositorio:** https://github.com/axsocode/axsofit-world  
+**Rama:** main
 
-## Estado observado
+## 1. Inventario verificado
 
 - Repositorio público y accesible; rama principal main.
-- La aplicación se concentra en index.html, con HTML/CSS y JavaScript como módulo ES.
-- Three.js 0.180.0 se importa mediante import map desde CDN.
-- GLTFLoader y SkeletonUtils se importan desde módulos de ejemplos de Three.js.
-- Firebase 11.10.0 se importa dinámicamente: Authentication y Realtime Database.
-- El inicio de sesión actual es anónimo y el UID separa los perfiles.
-- Presencia, posiciones, acciones y chat usan Realtime Database.
-- Existen cuatro salas: AXSO_GYM, AXSO_ARENA, AXSO_STUDIO y AXSO_SOCIAL.
-- El perfil incluye identidad, métricas corporales básicas y registro general de entrenamientos.
-- Las pestañas son una primera versión dinámica del DOM; no es todavía una arquitectura React/TypeScript modular.
+- Punto de entrada: `index.html` (aprox. 58 KB en la revisión).
+- En la raíz se encuentran documentos Markdown, `index.html`, `AXSOFIT_WORLD_Prototipo_Multijugador.zip` (1,716,574 bytes) y carpeta `assets/assets`.
+- En `assets/assets` está `AXSOFIT_Mesomorfo_172cm.obj` (4,140,239 bytes). Un OBJ no contiene por sí solo rigging/esqueleto ni clips de animación.
+- No se encontró `package.json`, `firebase.json`, reglas de Realtime Database, ni carpeta `.github` en la raíz consultada.
+- No se encontró el GLB como archivo independiente en la ruta de modelos consultada; el ZIP está presente y el código intenta extraer el GLB desde él.
 
-## Avatar y activos
+## 2. Arquitectura y dependencias observadas en index.html
 
-El código intenta descargar AXSOFIT_WORLD_Prototipo_Multijugador.zip, localizar AXSOFIT_WORLD/public/models/axsofit-humanoid-rig.glb y cargarlo con GLTFLoader. También importa SkeletonUtils para clonar el rig.
+- Aplicación monolítica HTML/CSS/JavaScript ES Module.
+- Three.js 0.180.0 mediante import map y CDN.
+- GLTFLoader y SkeletonUtils desde los módulos de ejemplos de Three.js.
+- JSZip 3.10.1 para abrir el ZIP del prototipo en el navegador.
+- Firebase 11.10.0: App, Authentication y Realtime Database cargados dinámicamente desde CDN.
+- No hay framework React ni TypeScript configurado.
+- No hay gestor de paquetes, scripts de build, lint o pruebas configurados.
 
-Clips requeridos: Caminar_Loop, Saludar y Celebrar_Salto.
+## 3. Carga del avatar original
 
-Limitación: el código confirma la ruta y el mecanismo de carga, pero esta inspección no ha permitido examinar el contenido binario interno del ZIP ni verificar directamente esqueleto, skinning, jerarquía de huesos o nombres reales de clips. El código comprueba los nombres esperados y dispone de fallback visual. El activo no se declara validado todavía.
+El código solicita `./AXSOFIT_WORLD_Prototipo_Multijugador.zip`, busca dentro la ruta `AXSOFIT_WORLD/public/models/axsofit-humanoid-rig.glb`, la carga con GLTFLoader y clona el modelo con SkeletonUtils.
 
-## Funciones observadas
+El código comprueba si los clips esperados existen:
+- `Caminar_Loop`
+- `Saludar`
+- `Celebrar_Salto`
+
+Si la carga falla, el código usa un avatar geométrico provisional.
+
+**Pendiente crítico:** aunque el ZIP está presente y el cargador apunta a una ruta interna concreta, no se ha podido leer el binario del ZIP mediante la inspección disponible. Por tanto, no se puede certificar todavía que el GLB esté dentro, ni validar su esqueleto, skinning, huesos o clips. No sustituir el activo ni eliminar el fallback antes de verificar el archivo real.
+
+## 4. Funciones verificadas por lectura del código
 
 | Área | Estado |
 |---|---|
-| Escenario 3D y controles | Implementación existente |
-| Salas, presencia y acciones | Firebase existente |
-| Chat compartido | Firebase existente |
+| Escenario Three.js, cámara y controles | Implementación en index.html |
+| Movimiento local y animaciones | Implementación en index.html |
+| Clonado de avatar riggeado | SkeletonUtils está integrado; activo pendiente de validación binaria |
+| Salas AXSO_GYM, AXSO_ARENA, AXSO_STUDIO, AXSO_SOCIAL | Implementación Firebase |
+| Presencia/posición/acciones | Realtime Database |
+| Chat compartido | Realtime Database |
+| Autenticación | signInAnonymously |
 | Perfil e identidad | Implementación básica |
-| Métricas corporales | Formulario y snapshot en Firebase |
+| Métricas corporales | Snapshot en profiles/{uid}/bodyMetrics |
 | IMC y TMB | Cálculos locales; TMB Mifflin–St Jeor |
-| Registro general de sesiones | Guardado en Firebase y XP básica |
-| Historial | Últimas cinco sesiones |
-| Fuerza/RM | Interfaz inicial; persistencia no verificada |
-| Resistencia | Interfaz inicial; persistencia no verificada |
-| AXCIRCUIT | Interfaz inicial; persistencia no verificada |
-| Pentagrama | Visual provisional; no es una puntuación calculada |
-| Academia, misiones y logros | No verificados como sistemas funcionales |
-| Polar/Myzone/InBody/Health Connect | No implementados/verificados |
+| Sesiones generales | Guardado en profiles/{uid}/trainings y XP calculada en cliente |
+| Fuerza/RM | Formulario visual; no se encontraron listeners de guardado para saveStrengthEntry |
+| Rutina de fuerza | Formulario visual; no se encontró listener de guardado |
+| Resistencia | Formulario visual; no se encontró listener de guardado |
+| AXCIRCUIT | Formulario visual; no se encontró listener de guardado |
+| Pentagrama | SVG estático; etiquetas indican “Por medir” |
+| Academia, misiones, logros | No implementados/verificados como módulos funcionales |
+| Polar, Myzone, InBody, Health Connect | Sin integración implementada/verificada |
 
-## Riesgos y deuda técnica
+## 5. Firebase y seguridad
 
-1. Aplicación monolítica: UI, lógica, Firebase y motor 3D están concentrados en un HTML.
-2. No se encontraron README.md, package.json, firebase.json, reglas versionadas ni documentación de arquitectura en las rutas raíz consultadas.
-3. Dependencias desde CDN; no hay instalación reproducible, build, linter o tests configurados en el repositorio inspeccionado.
-4. Autenticación anónima; registro convencional y vinculación de identidad no verificados.
-5. XP se actualiza desde el cliente; no hay evidencia de libro mayor transaccional protegido.
-6. Métricas corporales se guardan como snapshot; no se verificó historial, método ni procedencia por dato.
-7. No hay esquema relacional ni migraciones observadas.
-8. Resultados competitivos requieren validación confiable del lado servidor.
-9. Pentagrama debe seguir como pendiente hasta disponer de pruebas reales.
-10. No se verificaron pruebas automatizadas ni pipeline CI.
+- Proyecto configurado en cliente: `axsofit-world`.
+- Base de datos: instancia Realtime Database en región europe-west1.
+- El código autentica anónimamente y guarda datos bajo `profiles/{uid}`.
+- Las salas usan `rooms/{roomId}/players` y `rooms/{roomId}/messages`.
+- La configuración cliente de Firebase está en el HTML. La API key web de Firebase no debe tratarse como secreto de servidor; la seguridad depende de Authentication, reglas y restricciones del proyecto.
+- **No se han inspeccionado las reglas activas de Realtime Database.** No se certifica el aislamiento entre usuarios ni la protección contra escrituras arbitrarias.
+- XP y estadísticas se calculan/actualizan desde el cliente; no es un sistema competitivo resistente a manipulación.
 
-## Acciones inmediatas
+## 6. Riesgos y deuda técnica
 
-- Congelar y documentar el comportamiento actual antes de extraer módulos.
-- Verificar el ZIP y el GLB real, sus animaciones y su procedencia.
-- Versionar reglas Firebase y probar acceso por UID.
-- Añadir estructura y pruebas reproducibles sin sustituir el runtime actual de golpe.
-- Migrar por módulos manteniendo operativo el mundo 3D.
+1. Presentación, dominio, acceso a Firebase y motor 3D concentrados en un único archivo.
+2. Dependencias CDN sin lockfile ni build reproducible.
+3. No hay pruebas automatizadas ni CI observadas.
+4. Autenticación anónima sin flujo de cuenta permanente/vinculación verificado.
+5. Las escrituras de XP son client-side y no forman un ledger auditable.
+6. Las métricas corporales son un snapshot, sin historial de mediciones verificado.
+7. Fuerza, resistencia y AXCIRCUIT contienen formularios, pero no listeners de persistencia en el código inspeccionado.
+8. Los rankings/resultados futuros requieren validación de servidor.
+9. Pentagrama es ilustrativo, no un resultado deportivo calculado.
+10. Las reglas de Firebase son el principal bloqueo para auditar seguridad.
 
-## Criterio de honestidad técnica
+## 7. Acciones de Fase 1
 
-Implementado significa código conectado a persistencia/servicio real y probado. Interfaz significa solo presentación. Pendiente significa no demostrado. Ninguna integración externa se considerará conectada sin documentación oficial, permisos válidos y prueba de extremo a extremo.
+- [x] Inventariar los archivos raíz y activos visibles.
+- [x] Revisar el punto de entrada y sus dependencias.
+- [x] Localizar el mecanismo de carga del GLB y clonación.
+- [x] Distinguir funcionalidades conectadas de interfaces provisionales.
+- [x] Documentar arquitectura objetivo, datos, seguridad y roadmap.
+- [ ] Validar el contenido del ZIP y el GLB original.
+- [ ] Revisar reglas activas de Firebase y probar aislamiento por UID.
+- [ ] Preparar toolchain reproducible y pruebas sin romper GitHub Pages.
+- [ ] Ejecutar pruebas en navegador real y móvil.
+
+## 8. Criterio de honestidad técnica
+
+“Implementado” significa conectado a persistencia/servicio real y probado. “Interfaz” significa presentación sin persistencia demostrada. “Pendiente” significa no demostrado. No se declarará conectada ninguna integración externa sin documentación oficial, permisos válidos y prueba de extremo a extremo.
