@@ -667,11 +667,26 @@
           const {OBJLoader}=await import('https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/OBJLoader.js');
           const loader=new OBJLoader();
           const loadedModel=await loader.loadAsync('./assets/AXSOFIT_Mesomorfo_172cm.obj');
+          // El OBJ viene con el eje Z como vertical. Lo convertimos al eje Y de Three.js.
           loadedModel.rotation.x=-Math.PI/2;
-          loadedModel.position.y=-.02;
-          loadedModel.scale.setScalar(1);
+          loadedModel.updateMatrixWorld(true);
+
+          // Normalizar el cuerpo a 1,75 m, centrarlo y apoyar los pies en y=0.
+          const modelBounds = new THREE.Box3().setFromObject(loadedModel);
+          const modelSize = modelBounds.getSize(new THREE.Vector3());
+          const modelCenter = modelBounds.getCenter(new THREE.Vector3());
+          const targetHeight = 1.75;
+          const modelScale = targetHeight / Math.max(modelSize.y, 0.001);
+          loadedModel.scale.setScalar(modelScale);
+          loadedModel.position.set(
+            -modelCenter.x * modelScale,
+            -modelBounds.min.y * modelScale,
+            -modelCenter.z * modelScale
+          );
+          loadedModel.updateMatrixWorld(true);
+
           avatarBodyModel=loadedModel;
-          console.info('Modelo anatómico AXSO cargado');
+          console.info('Modelo anatómico AXSO cargado y normalizado a 1,75 m');
         }catch(modelError){
           console.warn('No se pudo cargar el modelo anatómico; se usará el avatar provisional:',modelError);
         }
