@@ -215,6 +215,13 @@
       const head = new THREE.Mesh(new THREE.SphereGeometry(.28,16,12), skinMat);
       head.position.y = 2.0;
       group.add(head);
+      const arms = [];
+      [-.48,.48].forEach(x => {
+        const arm = new THREE.Mesh(new THREE.CylinderGeometry(.11,.12,.72,10),skinMat);
+        arm.position.set(x,1.25,0);
+        group.add(arm);
+        arms.push(arm);
+      });
       const legs = [];
       [-.22,.22].forEach(x => {
         const leg = new THREE.Mesh(new THREE.CylinderGeometry(.13,.15,.72,10), darkMat);
@@ -230,7 +237,15 @@
       ring.position.y = .025;
       group.add(ring);
       group.userData.legs = legs;
+      group.userData.arms = arms;
+      group.userData.action = '';
+      group.userData.actionUntil = 0;
       return group;
+    }
+
+    function playAvatarAction(avatar,action,until) {
+      avatar.userData.action=action||'';
+      avatar.userData.actionUntil=Number(until)||0;
     }
 
     function addBox(x,y,z,w,h,d,color) {
@@ -342,8 +357,20 @@
       const npcs=scene.userData.npcs||[];
       npcs.forEach((npc,i)=>{npc.position.y=.035+Math.sin(time*.002+i)*.035;});
       Object.values(remotePlayers).forEach(avatar=>{
-        if(avatar.userData.target){
-          avatar.position.lerp(avatar.userData.target,.22);
+        if(avatar.userData.target) avatar.position.lerp(avatar.userData.target,.22);
+      });
+      const allAvatars=[player,...Object.values(remotePlayers)];
+      allAvatars.forEach(avatar=>{
+        const arms=avatar.userData.arms||[];
+        const active=avatar.userData.action && Date.now()<avatar.userData.actionUntil;
+        if(active && avatar.userData.action==='wave'){
+          arms[0].rotation.z=-Math.sin(time*.025)*1.15-.35;
+          arms[1].rotation.z=0;
+        }else if(active && avatar.userData.action==='celebrate'){
+          arms.forEach((arm,i)=>{arm.rotation.z=(i===0?-1:1)*(1.25+Math.sin(time*.02)*.18);});
+        }else{
+          arms.forEach((arm,i)=>{arm.rotation.z=(i===0?-.12:.12);});
+          if(avatar.userData.action && Date.now()>=avatar.userData.actionUntil) avatar.userData.action='';
         }
       });
 
@@ -400,8 +427,19 @@
       joystick.addEventListener('pointerup',release);
       joystick.addEventListener('pointercancel',release);
 
-      document.getElementById('wave').addEventListener('click',()=>notice('👋 ¡Saludos desde AXSO WORLD!'));
-      document.getElementById('celebrate').addEventListener('click',()=>notice('🔥 ¡Vamos con todo!'));
+      function triggerAction(action) {
+        const actionAt=Date.now();
+        const actionUntil=actionAt+2200;
+        playAvatarAction(player,action,actionUntil);
+        if(connected && myRef && dbUpdate){
+          dbUpdate(myRef,{action:action,actionAt:actionAt,actionUntil:actionUntil})
+            .catch(error=>{console.warn('No se pudo compartir la acción:',error);notice('No se pudo compartir la acción. Revisa las reglas de Firebase.');});
+        }else{
+          notice('Conecta con Firebase para compartir acciones.');
+        }
+      }
+      document.getElementById('wave').addEventListener('click',()=>triggerAction('wave'));
+      document.getElementById('celebrate').addEventListener('click',()=>triggerAction('celebrate'));
       const input=document.getElementById('chatInput');
       const profileModal=document.getElementById('profileModal');
       const profileInput=document.getElementById('profileNameInput');
@@ -534,7 +572,7 @@
       myRef=dbModule.ref(database,`rooms/${roomId}/players/${myUid}`);
       await dbModule.onDisconnect(myRef).remove();
       await dbModule.set(myRef,{
-        x:player.position.x,z:player.position.z,online:true,updatedAt:Date.now()
+        x:player.position.x,z:player.position.z,online:true,action:'',actionAt:0,actionUntil:0,updatedAt:Date.now()
       });
       connected=true;
       dbModule.onValue(roomRef,snapshot=>{
@@ -551,6 +589,10 @@
           remotePlayers[uid].userData.target=new THREE.Vector3(
             Number(p.x)||0,0,Number(p.z)||0
           );
+          if(p.actionAt && p.actionAt>=(remotePlayers[uid].userData.lastActionAt||0)){
+            remotePlayers[uid].userData.lastActionAt=p.actionAt;
+            playAvatarAction(remotePlayers[uid],p.action,p.actionUntil);
+          }
         });
         Object.keys(remotePlayers).forEach(uid=>{
           if(!data[uid]){
