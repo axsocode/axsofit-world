@@ -57,6 +57,14 @@
     #profileModal p{font-size:12px;color:#bbb;line-height:1.5}
     #profileNameInput{width:100%;margin:8px 0 12px;padding:12px;background:#292932;color:#fff;border:1px solid #555;border-radius:9px}
     .profileActions{display:flex;gap:8px}.profileActions button{flex:1}
+    .trainingBox{background:#25252e;border:1px solid #444;border-radius:11px;padding:12px;margin:12px 0}
+    .trainingBox h3{font-size:12px;letter-spacing:1px;margin:0 0 10px;color:#f0c96b}
+    .trainingBox label{display:block;font-size:11px;color:#bbb;margin:7px 0 4px}
+    .trainingBox input,.trainingBox select{box-sizing:border-box;background:#17171e;color:white;border:1px solid #555;border-radius:8px;padding:10px;width:100%;min-width:0}
+    .trainingInputs{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+    #trainingMessage{font-size:11px;color:#9fd9ae;margin-top:7px;min-height:14px}
+    #trainingHistory{font-size:11px;color:#ddd;line-height:1.6}
+    .trainingRow{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid #ffffff18;padding:6px 0}
     @media(max-width:430px){.top{padding:10px}.brand{font-size:18px}.playerinfo{font-size:11px}#chatbox{top:78px;width:55vw}#joystick{width:112px;height:112px;bottom:78px}#knob{left:29px;top:29px}#actions{bottom:82px}#actions button{width:78px;font-size:11px;padding:9px 5px}.bottom{bottom:8px}}
   </style>
   <script type="importmap">
@@ -130,6 +138,33 @@
         <div class="profileStat"><strong id="profileXp">0</strong><span>XP</span></div>
         <div class="profileStat"><strong id="profileRank">COBRE</strong><span>RANGO</span></div>
       </div>
+      <div class="profileStats">
+        <div class="profileStat"><strong id="profileWorkouts">0</strong><span>SESIONES</span></div>
+        <div class="profileStat"><strong id="profileMinutes">0</strong><span>MINUTOS</span></div>
+        <div class="profileStat"><strong id="profileStreak">0</strong><span>DÍAS ACTIVOS</span></div>
+      </div>
+      <div class="trainingBox">
+        <h3>REGISTRAR ENTRENAMIENTO</h3>
+        <label for="trainingType">Tipo de entrenamiento</label>
+        <select id="trainingType" style="width:100%;max-width:none">
+          <option value="Fuerza">Fuerza</option>
+          <option value="Cardio">Cardio</option>
+          <option value="Ciclo indoor">Ciclo indoor</option>
+          <option value="Funcional / HYROX">Funcional / HYROX</option>
+          <option value="Movilidad / Pilates">Movilidad / Pilates</option>
+          <option value="Otro">Otro</option>
+        </select>
+        <div class="trainingInputs">
+          <div><label for="trainingMinutes">Duración (min)</label><input id="trainingMinutes" type="number" min="5" max="300" value="45"></div>
+          <div><label for="trainingEffort">Esfuerzo</label><select id="trainingEffort" style="width:100%;max-width:none"><option value="1">Suave</option><option value="2" selected>Moderado</option><option value="3">Intenso</option></select></div>
+        </div>
+        <button id="registerTraining" style="width:100%;margin-top:10px">＋ REGISTRAR SESIÓN</button>
+        <div id="trainingMessage"></div>
+      </div>
+      <div class="trainingBox">
+        <h3>ÚLTIMAS SESIONES</h3>
+        <div id="trainingHistory">Todavía no hay entrenamientos registrados.</div>
+      </div>
       <div class="profileActions">
         <button id="saveProfile">GUARDAR</button>
         <button id="cancelProfile" class="secondary">CANCELAR</button>
@@ -179,6 +214,8 @@
     let dbGet = null;
     let dbSet = null;
     let profileRef = null;
+    let trainingRef = null;
+    let athleteStats = {xp:0,level:1,workouts:0,minutes:0,streak:0,lastTrainingDate:''};
     let connected = false;
     let dbUpdate = null;
     let dbPush = null;
@@ -572,11 +609,12 @@
       profileLabel.textContent=playerName;
       document.querySelectorAll('.colorChoice').forEach(item=>item.classList.toggle('selected',item.dataset.color===avatarColor));
       applyAvatarColor();
-      document.getElementById('profileBtn').addEventListener('click',()=>{
+      document.getElementById('profileBtn').addEventListener('click',async()=>{
         profileInput.value=playerName;
         profileSaveState.textContent='';
         profileModal.style.display='flex';
-        profileInput.focus();
+        updateAthleteStatsUI();
+        await loadTrainingHistory();
       });
       document.getElementById('cancelProfile').addEventListener('click',()=>{
         profileModal.style.display='none';
@@ -595,7 +633,7 @@
         }catch(error){}
         if(profileRef && dbSet){
           profileSaveState.textContent='Guardando en la nube...';
-          dbSet(profileRef,{name:playerName,avatarColor:avatarColor,level:1,xp:0,updatedAt:Date.now()})
+          dbUpdate(profileRef,{name:playerName,avatarColor:avatarColor,updatedAt:Date.now()})
             .then(()=>{profileSaveState.textContent='Perfil guardado en Firebase.';notice('¡Identidad AXSO guardada!');})
             .catch(error=>{console.warn('Perfil Firebase:',error);profileSaveState.textContent='Guardado local. Firebase necesita permisos para /profiles.';notice('Perfil guardado en este dispositivo.');});
         }else{
@@ -603,6 +641,67 @@
           notice('¡Perfil actualizado, '+playerName+'!');
         }
         profileModal.style.display='none';
+      });
+      function rankForLevel(level){
+        if(level>=30)return 'DIAMANTE';
+        if(level>=20)return 'ORO';
+        if(level>=10)return 'PLATA';
+        if(level>=5)return 'BRONCE';
+        return 'COBRE';
+      }
+      function updateAthleteStatsUI(){
+        const level=Math.max(1,Number(athleteStats.level)||Math.floor((Number(athleteStats.xp)||0)/250)+1);
+        document.getElementById('profileLevel').textContent=String(level).padStart(2,'0');
+        document.getElementById('profileXp').textContent=String(athleteStats.xp||0);
+        document.getElementById('profileRank').textContent=rankForLevel(level);
+        document.getElementById('profileWorkouts').textContent=String(athleteStats.workouts||0);
+        document.getElementById('profileMinutes').textContent=String(athleteStats.minutes||0);
+        document.getElementById('profileStreak').textContent=String(athleteStats.streak||0);
+        const levelXp=(Number(athleteStats.xp)||0)%250;
+        document.getElementById('profileXp').title=levelXp+' / 250 XP para el siguiente nivel';
+      }
+      async function loadTrainingHistory(){
+        const box=document.getElementById('trainingHistory');
+        if(!myUid || !database){box.textContent='Conecta con Firebase para consultar tus sesiones.';return;}
+        try{
+          const snap=await dbGet(dbModule.ref(database,'profiles/'+myUid+'/trainings'));
+          const data=snap.val()||{};
+          const rows=Object.values(data).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,5);
+          box.replaceChildren();
+          if(!rows.length){box.textContent='Todavía no hay entrenamientos registrados.';return;}
+          rows.forEach(item=>{
+            const row=document.createElement('div');row.className='trainingRow';
+            const left=document.createElement('span');left.textContent=(item.type||'Entrenamiento')+' · '+(item.minutes||0)+' min';
+            const right=document.createElement('strong');right.textContent='+'+(item.xp||0)+' XP';
+            row.append(left,right);box.appendChild(row);
+          });
+        }catch(error){box.textContent='No se pudo cargar el historial. Revisa los permisos de Firebase.';}
+      }
+      document.getElementById('registerTraining').addEventListener('click',async()=>{
+        const message=document.getElementById('trainingMessage');
+        const type=document.getElementById('trainingType').value;
+        const minutes=Number(document.getElementById('trainingMinutes').value);
+        const effort=Number(document.getElementById('trainingEffort').value);
+        if(!Number.isFinite(minutes)||minutes<5||minutes>300){message.textContent='Introduce una duración entre 5 y 300 minutos.';return;}
+        if(!myUid||!database||!dbPush||!dbUpdate){message.textContent='Firebase no está conectado. No se ha registrado la sesión.';return;}
+        const xp=25+Math.round(minutes/10)*5+effort*10;
+        const now=Date.now();
+        const dateKey=new Date(now).toISOString().slice(0,10);
+        const previousDate=athleteStats.lastTrainingDate||'';
+        const daysApart=previousDate?Math.round((Date.parse(dateKey)-Date.parse(previousDate))/86400000):0;
+        const streak=previousDate===dateKey?(athleteStats.streak||1):(daysApart===1?(athleteStats.streak||0)+1:1);
+        const next={...athleteStats,xp:(Number(athleteStats.xp)||0)+xp,workouts:(Number(athleteStats.workouts)||0)+1,minutes:(Number(athleteStats.minutes)||0)+minutes,streak,lastTrainingDate:dateKey};
+        next.level=Math.floor(next.xp/250)+1;
+        message.textContent='Guardando entrenamiento...';
+        try{
+          const path='profiles/'+myUid;
+          await dbPush(dbModule.ref(database,path+'/trainings'),{type,minutes,effort,xp,createdAt:now,date:dateKey});
+          await dbUpdate(profileRef,{stats:next,updatedAt:now});
+          athleteStats=next;updateAthleteStatsUI();
+          message.textContent='¡Sesión registrada! Has ganado '+xp+' XP.';
+          await loadTrainingHistory();
+          notice('Entrenamiento guardado · +'+xp+' XP');
+        }catch(error){console.warn('Registro entrenamiento:',error);message.textContent='No se pudo guardar. Revisa las reglas de Firebase.';}
       });
       async function sendChat(){
         const value=input.value.trim();
@@ -654,6 +753,8 @@
           if(savedProfile){
             if(typeof savedProfile.name==='string' && savedProfile.name.trim()) playerName=savedProfile.name.slice(0,20);
             if(typeof savedProfile.avatarColor==='string' && /^#[0-9a-fA-F]{6}$/.test(savedProfile.avatarColor)) avatarColor=savedProfile.avatarColor;
+            athleteStats={...athleteStats,...(savedProfile.stats||{})};
+            updateAthleteStatsUI();
             document.getElementById('playerNameLabel').textContent=playerName;
             try{localStorage.setItem('axsofitPlayerName',playerName);localStorage.setItem('axsofitAvatarColor',avatarColor);}catch(error){}
             document.querySelectorAll('.colorChoice').forEach(item=>item.classList.toggle('selected',item.dataset.color===avatarColor));
