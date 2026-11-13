@@ -97,3 +97,56 @@ Si la carga falla, el código usa un avatar geométrico provisional.
 ## 8. Criterio de honestidad técnica
 
 “Implementado” significa conectado a persistencia/servicio real y probado. “Interfaz” significa presentación sin persistencia demostrada. “Pendiente” significa no demostrado. No se declarará conectada ninguna integración externa sin documentación oficial, permisos válidos y prueba de extremo a extremo.
+
+
+## 9. Auditoría del paquete adicional recibido (2026-11-13)
+
+Se recibió y abrió el archivo `AXSOFIT_WORLD_Academia_Progresiva.zip` (1,732,219 bytes). Es un proyecto React/TypeScript/Vite independiente, no una actualización automática del `index.html` que está publicado actualmente.
+
+### Estructura y dependencias
+
+- `src/App.tsx`, `src/Avatar.tsx`, `src/ProfilePanel.tsx`, `src/realtime.ts`, `src/types.ts`, `src/style.css`.
+- React 18.3.1, TypeScript 5.7.3, Vite 6.0.7.
+- Three.js 0.170.0, React Three Fiber 8.17.10, Drei 9.122.0.
+- Supabase JS 2.49.1.
+- Script de build: `tsc -b && vite build`.
+- `.env.example` define `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`; no contiene credenciales reales.
+
+### GLB inspeccionado directamente
+
+El archivo `public/models/axsofit-humanoid-rig.glb` existe y se pudo leer su estructura GLB 2.0. Tamaño: 4,011,688 bytes. Contiene una malla, un skin con 20 joints, atributos `JOINTS_0` y `WEIGHTS_0`, y estas tres animaciones exactas:
+
+- `Caminar_Loop` (9 canales)
+- `Saludar` (3 canales)
+- `Celebrar_Salto` (7 canales)
+
+El esqueleto declara Root, Pelvis, Spine, Chest, Neck, Head, hombros, brazos, antebrazos, manos, muslos, espinillas y pies. Esto verifica estructura de skinning y clips en el GLB; no sustituye una inspección visual de deformaciones en ejecución.
+
+El componente `Avatar.tsx` carga el modelo con `useGLTF`, clona con `SkeletonUtils.clone` de `three-stdlib` y crea un AnimationMixer. La lógica reconoce los nombres de los tres clips.
+
+### Funciones y límites del paquete
+
+- La app React monta una escena R3F y perfil con pestañas.
+- Supabase Realtime usa un canal `axsofit-world-room-01` con Presence y Broadcast, pero solo conecta si existen las variables de entorno.
+- No se proporcionaron credenciales ni proyecto Supabase configurado; no se verificó conexión real.
+- El README declara expresamente valores demo y persistencia pendiente.
+- El código muestra valores hardcodeados de composición corporal, RM, cardio, actividad y atributos RPG.
+- Las misiones se marcan completadas mediante estado local de React; no se encontró persistencia backend de esas acciones.
+- Botones de mediciones, rutinas y sesiones muestran alertas de “siguiente fase”, no guardan registros.
+- El componente de perfil muestra nivel 12, 2,450/3,000 XP y otras cifras de demostración.
+
+### Relación con el repositorio publicado
+
+El repositorio GitHub auditado mantiene su aplicación actual basada en HTML/JavaScript, Three.js 0.180.0 y Firebase Realtime Database. El ZIP recibido contiene una segunda implementación React/Vite/TypeScript, Three.js 0.170.0 y un adaptador Supabase. No son el mismo árbol de código ni usan el mismo backend. No se deben mezclar ni desplegar uno sobre otro sin una decisión explícita de arquitectura y un plan de migración.
+
+### Prueba de build
+
+Se intentó ejecutar `npm install --no-audit --no-fund` con Node 22.16.0 y npm 10.9.2 en el entorno de auditoría, pero la instalación agotó el tiempo disponible antes de crear `node_modules`. Por ello no se ejecutó `npm run build` y no se afirma que el build compile.
+
+### Decisiones pendientes para cerrar Fase 1
+
+1. Confirmar si el ZIP React/Vite es la nueva base deseada o un prototipo paralelo.
+2. Elegir backend único: mantener Firebase o migrar deliberadamente a Supabase.
+3. Inspeccionar las reglas activas de Firebase desde la consola; no están incluidas en el ZIP.
+4. Ejecutar el proyecto en navegador con dependencias instaladas para validar deformación, orientación, escalado y reproducción de los clips.
+5. No migrar ni borrar la app publicada hasta tener paridad funcional y pruebas de regresión.
