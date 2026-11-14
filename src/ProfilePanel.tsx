@@ -26,7 +26,7 @@ function Radar({values}:{values:typeof demo}) {
 }
 function Metric({label,value,unit="",note}:{label:string;value:string;unit?:string;note?:string}) {return <div className="metric-card"><small>{label}</small><strong>{value}<em>{unit}</em></strong>{note&&<span>{note}</span>}</div>}
 
-export function ProfilePanel({status,players,playerId,remotes,speed,setSpeed,setClip}:{status:string;players:number;playerId:string;remotes:{playerId:string;name:string}[];speed:number;setSpeed:(v:number)=>void;setClip:(c:ClipName)=>void}) {
+export function ProfilePanel({status,players,playerId,remotes,speed,setSpeed,setClip}:{status:string;players:number;playerId:string;remotes:{playerId:string;name:string}[];speed:number;setSpeed:(v:number)=>void;setClip:(c:ClipName)=>void;onClose:()=>void}) {
  const [tab,setTab]=useState<Tab>("avatar");
  const [doneMissions,setDoneMissions]=useState<string[]>([]);
  const [activeWeek,setActiveWeek]=useState(1);
