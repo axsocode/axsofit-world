@@ -1,6 +1,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Canvas } from "@react-three/fiber";
-import { Grid, OrbitControls, PerspectiveCamera } from "@react-three/drei";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Grid, PerspectiveCamera } from "@react-three/drei";
+import { Vector3 } from "three";
 import { Avatar } from "./Avatar";
 import { WorldRealtime } from "./realtime";
 import type { ClipName, PlayerState } from "./types";
@@ -12,9 +13,37 @@ const initial = (id: string, name: string): PlayerState => ({
   loop: false, sequenceId: makeId(), position: [0,0,0], rotation: 0, velocity: [0,0,0]
 });
 
+
+type Stick = { x: number; y: number };
+function FollowCamera({ target }: { target: PlayerState }) {
+ const { camera } = useThree(); const desired = useRef(new Vector3());
+ useFrame(() => {
+  const d=4.8;
+  desired.current.set(target.position[0]-Math.sin(target.rotation)*d,target.position[1]+2.1,target.position[2]-Math.cos(target.rotation)*d);
+  camera.position.lerp(desired.current,0.14);
+  camera.lookAt(target.position[0],target.position[1]+1.05,target.position[2]);
+ });
+ return null;
+}
+function VirtualJoystick({ stick }: { stick: React.MutableRefObject<Stick> }) {
+ const [offset,setOffset]=useState({x:0,y:0}); const base=useRef<HTMLDivElement>(null); const pointer=useRef<number|null>(null);
+ const move=(e:React.PointerEvent<HTMLDivElement>)=>{
+  if(!base.current)return; const r=base.current.getBoundingClientRect(), radius=r.width*.32;
+  const dx=e.clientX-(r.left+r.width/2), dy=e.clientY-(r.top+r.height/2), len=Math.hypot(dx,dy), scale=len>radius?radius/len:1;
+  const x=dx*scale/radius,y=dy*scale/radius; stick.current={x,y}; setOffset({x:dx*scale,y:dy*scale});
+ };
+ const release=()=>{pointer.current=null;stick.current={x:0,y:0};setOffset({x:0,y:0});};
+ return <div className="joystick-hud"><div ref={base} className="joystick-base" aria-label="Joystick virtual de movimiento"
+  onPointerDown={e=>{pointer.current=e.pointerId;e.currentTarget.setPointerCapture(e.pointerId);move(e);}}
+  onPointerMove={e=>{if(pointer.current===e.pointerId)move(e);}} onPointerUp={release} onPointerCancel={release} onLostPointerCapture={release}>
+  <i className="joystick-axis horizontal"/><i className="joystick-axis vertical"/>
+  <span className="joystick-knob" style={{transform:"translate(calc(-50% + "+offset.x+"px), calc(-50% + "+offset.y+"px))"}}/>
+ </div><small>MOVER</small></div>;
+}
+
 function Scene({ local, remotes }: { local: PlayerState; remotes: PlayerState[] }) {
   return <Canvas shadows dpr={[1,1.35]} fallback={<div className="webgl-fallback">Tu navegador no ha podido iniciar WebGL. Puedes seguir usando el perfil y la Academia; prueba Chrome actualizado para activar la vista 3D.</div>}>
-    <PerspectiveCamera makeDefault position={[3.8,2.5,5.5]} fov={42}/>
+    <PerspectiveCamera makeDefault position={[0,2.1,-4.8]} fov={52}/>
     <ambientLight intensity={1.1}/>
     <directionalLight position={[4,7,5]} intensity={2.1} castShadow/>
     <hemisphereLight intensity={0.65} groundColor="#242424"/>
@@ -23,7 +52,7 @@ function Scene({ local, remotes }: { local: PlayerState; remotes: PlayerState[] 
       <Avatar state={local} local/>
       {remotes.map(p => <Avatar key={p.playerId} state={p}/>)}
     </Suspense>
-    <OrbitControls target={[0,1,0]} minDistance={2.5} maxDistance={12} maxPolarAngle={Math.PI*.49}/>
+    <FollowCamera target={local}/>
   </Canvas>;
 }
 
@@ -34,8 +63,7 @@ export default function App() {
   const [status,setStatus] = useState("DEMO LOCAL");
   const [players,setPlayers] = useState(1);
   const [speed,setSpeed] = useState(1);
-  const [moving,setMoving] = useState(false);
-  const keys = useRef<Record<string,boolean>>({});
+  const stick = useRef<Stick>({x:0,y:0});
   const lastBroadcast = useRef(0);
   const seq = useCallback(() => makeId(), []);
 
@@ -52,28 +80,15 @@ export default function App() {
       startServerTime: Date.now(), sequenceId: seq(), playbackRate: speed}));
   }, [seq,speed]);
 
-  useEffect(() => {
-    const down = (e: KeyboardEvent) => {
-      const k=e.key.toLowerCase();
-      if (["w","a","s","d","arrowup","arrowdown","arrowleft","arrowright"," "].includes(k)) e.preventDefault();
-      keys.current[k]=true;
-      if (k==="h") setClip("Saludar");
-      if (k==="c") setClip("Celebrar_Salto");
-    };
-    const up = (e: KeyboardEvent) => { keys.current[e.key.toLowerCase()]=false; };
-    window.addEventListener("keydown",down); window.addEventListener("keyup",up);
-    return () => { window.removeEventListener("keydown",down); window.removeEventListener("keyup",up); };
-  }, [setClip]);
+  // Desplazamiento controlado únicamente mediante joystick táctil.
 
   useEffect(() => {
     let raf=0, last=performance.now();
     const tick=(now:number)=>{
       const dt=Math.min((now-last)/1000,.05); last=now;
-      const k=keys.current;
-      const x=(k.d||k.arrowright?1:0)-(k.a||k.arrowleft?1:0);
-      const z=(k.s||k.arrowdown?1:0)-(k.w||k.arrowup?1:0);
-      const active=!!(x||z);
-      setMoving(old => old!==active ? active : old);
+      const x=stick.current.x;
+      const z=stick.current.y;
+      const active=Math.hypot(x,z)>0.12;
       if (active) {
         setMe(prev=>{
           const mag=Math.hypot(x,z)||1, vx=x/mag, vz=z/mag;
@@ -99,8 +114,8 @@ export default function App() {
   return <main className="app">
     <header className="topbar"><div className="brand"><span className="mark">AX</span><div><b>AXSOFIT WORLD</b><small>HUMAN PERFORMANCE · AVATAR LAB</small></div></div><div className="status"><i className={status.startsWith("ONLINE")?"online":""}/>{status}</div></header>
     <section className="workspace">
-      <div className="scene"><Scene local={me} remotes={Object.values(remotes)}/><div className="scene-tag">AVATAR VIEW · 3D</div><div className="scene-foot"><span>172 CM · MESOMORPH</span><span>{players} JUGADOR{players===1?"":"ES"}</span></div></div>
-      <ProfilePanel status={status} players={players} playerId={rt.playerId} remotes={Object.values(remotes)} moving={moving} speed={speed} setSpeed={setSpeed} setClip={setClip} setMoving={setMoving} keys={keys} reset={()=>setMe(p=>({...p,position:[0,0,0] as [number,number,number],rotation:0,clip:"Idle",sequenceId:seq()}))}/>
+      <div className="scene"><Scene local={me} remotes={Object.values(remotes)}/><VirtualJoystick stick={stick}/><div className="scene-tag">TERCERA PERSONA · CÁMARA FIJA</div><div className="scene-foot"><span>172 CM · MESOMORPH</span><span>{players} JUGADOR{players===1?"":"ES"}</span></div></div>
+      <ProfilePanel status={status} players={players} playerId={rt.playerId} remotes={Object.values(remotes)} speed={speed} setSpeed={setSpeed} setClip={setClip}/>
     </section>
     <footer>AXSOFIT WORLD <span>·</span> PROTOTIPO INTERACTIVO 0.1</footer>
   </main>;
