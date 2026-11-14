@@ -5,9 +5,11 @@ import { AnimationAction, AnimationMixer, LoopOnce, LoopRepeat, Object3D } from 
 import { SkeletonUtils } from "three-stdlib";
 import type { ClipName, PlayerState } from "./types";
 
+const MODEL_URL = `${import.meta.env.BASE_URL}models/axsofit-humanoid-rig.glb`;
+
 type Props = { state: PlayerState; local?: boolean; onLoaded?: (clips: string[]) => void };
 export function Avatar({ state, local = false, onLoaded }: Props) {
-  const gltf = useGLTF("/models/axsofit-humanoid-rig.glb");
+  const gltf = useGLTF(MODEL_URL);
   const model = useMemo(() => SkeletonUtils.clone(gltf.scene) as Object3D, [gltf.scene]);
   const mixer = useMemo(() => new AnimationMixer(model), [model]);
   const actions = useRef<Record<string, AnimationAction>>({});
@@ -56,4 +58,4 @@ export function Avatar({ state, local = false, onLoaded }: Props) {
     {!local && <mesh position={[0, 1.88, 0]}><sphereGeometry args={[.035, 12, 12]}/><meshBasicMaterial color="#e11d2e"/></mesh>}
   </group>;
 }
-useGLTF.preload("/models/axsofit-humanoid-rig.glb");
+useGLTF.preload(MODEL_URL);
