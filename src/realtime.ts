@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import { createClient, SupabaseClient, RealtimeChannel } from "@supabase/supabase-js";
 import type { PlayerState } from "./types";
 
