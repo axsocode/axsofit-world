@@ -16,3 +16,8 @@
 .fatal-screen h1{font-size:24px;margin:14px 0 8px}
 .fatal-screen p{color:#aaa;line-height:1.6;font-size:14px}
 .fatal-screen button{background:#e11d2e;color:white;border:0;border-radius:5px;padding:12px 18px;font-weight:700}
+
+/* Estados de misiones bloqueadas por nivel RPG */
+.mission-card.mission-locked{opacity:.48;filter:saturate(.45)}
+.mission-card.mission-locked .mission-icon{background:#222;border-color:#444;color:#999}
+.mission-card>button:disabled{cursor:not-allowed;opacity:.75}
