@@ -63,6 +63,7 @@ export default function App() {
   const [status,setStatus] = useState("DEMO LOCAL");
   const [players,setPlayers] = useState(1);
   const [speed,setSpeed] = useState(1);
+  const [profileOpen,setProfileOpen] = useState(false);
   const stick = useRef<Stick>({x:0,y:0});
   const lastBroadcast = useRef(0);
   const seq = useCallback(() => makeId(), []);
@@ -114,8 +115,8 @@ export default function App() {
   return <main className="app">
     <header className="topbar"><div className="brand"><span className="mark">AX</span><div><b>AXSOFIT WORLD</b><small>HUMAN PERFORMANCE · AVATAR LAB</small></div></div><div className="status"><i className={status.startsWith("ONLINE")?"online":""}/>{status}</div></header>
     <section className="workspace">
-      <div className="scene"><Scene local={me} remotes={Object.values(remotes)}/><VirtualJoystick stick={stick}/><div className="scene-tag">TERCERA PERSONA · CÁMARA FIJA</div><div className="scene-foot"><span>172 CM · MESOMORPH</span><span>{players} JUGADOR{players===1?"":"ES"}</span></div></div>
-      <ProfilePanel status={status} players={players} playerId={rt.playerId} remotes={Object.values(remotes)} speed={speed} setSpeed={setSpeed} setClip={setClip}/>
+      <div className="scene"><Scene local={me} remotes={Object.values(remotes)}/><VirtualJoystick stick={stick}/><button className="profile-menu-trigger" type="button" aria-label="Abrir menú del perfil" aria-expanded={profileOpen} onClick={()=>setProfileOpen(v=>!v)}><span aria-hidden="true">☰</span><small>MENÚ</small></button><div className="scene-tag">TERCERA PERSONA · CÁMARA FIJA</div><div className="scene-foot"><span>172 CM · MESOMORPH</span><span>{players} JUGADOR{players===1?"":"ES"}</span></div></div>
+      <div className={`profile-drawer ${profileOpen ? "open" : ""}`} aria-hidden={!profileOpen}><ProfilePanel status={status} players={players} playerId={rt.playerId} remotes={Object.values(remotes)} speed={speed} setSpeed={setSpeed} setClip={setClip} onClose={()=>setProfileOpen(false)}/></div>
     </section>
     <footer>AXSOFIT WORLD <span>·</span> PROTOTIPO INTERACTIVO 0.1</footer>
   </main>;
