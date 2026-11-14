@@ -1,1 +1,60 @@
 
+name: AXSOFIT WORLD - Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  construir:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Instalar dependencias
+        run: npm install
+
+      - name: Compilar aplicacion
+        run: npm run build
+
+      - name: Verificar compilacion
+        run: |
+          test -f dist/index.html
+          echo "Compilacion correcta"
+
+      - name: Configurar Pages
+        uses: actions/configure-pages@v5
+
+      - name: Subir aplicacion
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+  desplegar:
+    needs: construir
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publicar
+        id: deployment
+        uses: actions/deploy-pages@v4
+
