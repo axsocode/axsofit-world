@@ -26,7 +26,7 @@ function Radar({values}:{values:typeof demo}) {
 }
 function Metric({label,value,unit="",note}:{label:string;value:string;unit?:string;note?:string}) {return <div className="metric-card"><small>{label}</small><strong>{value}<em>{unit}</em></strong>{note&&<span>{note}</span>}</div>}
 
-export function ProfilePanel({status,players,playerId,remotes,moving,speed,setSpeed,setClip,setMoving,keys,reset}:{status:string;players:number;playerId:string;remotes:{playerId:string;name:string}[];moving:boolean;speed:number;setSpeed:(v:number)=>void;setClip:(c:ClipName)=>void;setMoving:(v:boolean)=>void;keys:{current:Record<string,boolean>};reset:()=>void}) {
+export function ProfilePanel({status,players,playerId,remotes,speed,setSpeed,setClip}:{status:string;players:number;playerId:string;remotes:{playerId:string;name:string}[];speed:number;setSpeed:(v:number)=>void;setClip:(c:ClipName)=>void}) {
  const [tab,setTab]=useState<Tab>("avatar");
  const [doneMissions,setDoneMissions]=useState<string[]>([]);
  const [activeWeek,setActiveWeek]=useState(1);
@@ -51,7 +51,6 @@ export function ProfilePanel({status,players,playerId,remotes,moving,speed,setSp
   <div className="xp-block"><div><b>ATLETA EN DESARROLLO</b><span>2.450 / 3.000 XP</span></div><div className="xp-track"><i/></div></div>
   <nav className="profile-tabs" aria-label="Secciones del perfil">{tabs.map(t=><button key={t.id} className={tab===t.id?"selected":""} onClick={()=>setTab(t.id)}>{t.short}</button>)}</nav>
   {tab==="avatar"&&<>
-   <div className="control-group"><label>MOVIMIENTO DEL AVATAR</label><button className={`action primary ${moving?"active":""}`} onClick={()=>{const next=!moving;keys.current.w=next;setMoving(next);if(!next)setClip("Idle");else setClip("Caminar_Loop")}}><strong>↗</strong><span><b>Caminar</b><small>WASD / FLECHAS</small></span><kbd>W</kbd></button><div className="split"><button className="action" onClick={()=>{keys.current.w=false;setMoving(false);setClip("Idle")}}>■ <span><b>Detener</b><small>NEUTRO</small></span></button><button className="action" onClick={reset}>⌖ <span><b>Recentrar</b><small>INICIO</small></span></button></div></div>
    <div className="control-group"><label>GESTOS</label><button className="action" onClick={()=>setClip("Saludar")}><strong>✋</strong><span><b>Saludar</b><small>BRAZO + MANO</small></span><kbd>H</kbd></button><button className="action" onClick={()=>setClip("Celebrar_Salto")}><strong>✦</strong><span><b>Celebrar</b><small>BRAZOS ARRIBA + SALTO</small></span><kbd>C</kbd></button></div>
    <div className="control-group"><div className="range-head"><label>VELOCIDAD DE ANIMACIÓN</label><b>{speed.toFixed(1)}×</b></div><input type="range" min=".5" max="1.8" step=".1" value={speed} onChange={e=>setSpeed(Number(e.target.value))}/></div>
    <div className="players"><div className="range-head"><label>SALA MULTIJUGADOR</label><span className="pill">{status.startsWith("ONLINE")?"LIVE":"LOCAL"}</span></div><div className="player-row"><span className="dot"/> Tú <small>PLAYER · {playerId.slice(0,6)}</small></div>{remotes.map(p=><div className="player-row" key={p.playerId}><span className="dot remote"/> {p.name}<small>ONLINE</small></div>)}{!remotes.length&&<p className="hint">Los jugadores remotos aparecerán aquí al conectar Supabase Realtime.</p>}</div>
