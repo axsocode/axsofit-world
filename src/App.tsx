@@ -19,8 +19,10 @@ function Scene({ local, remotes }: { local: PlayerState; remotes: PlayerState[] 
     <directionalLight position={[4,7,5]} intensity={2.1} castShadow/>
     <hemisphereLight intensity={0.65} groundColor="#242424"/>
     <Grid args={[30,30]} cellSize={.5} cellThickness={.5} sectionSize={2} sectionThickness={1} fadeDistance={24} infiniteGrid/>
-    <Avatar state={local} local/>
-    {remotes.map(p => <Avatar key={p.playerId} state={p}/>)}
+    <Suspense fallback={null}>
+      <Avatar state={local} local/>
+      {remotes.map(p => <Avatar key={p.playerId} state={p}/>)}
+    </Suspense>
     <OrbitControls target={[0,1,0]} minDistance={2.5} maxDistance={12} maxPolarAngle={Math.PI*.49}/>
   </Canvas>;
 }
