@@ -21,3 +21,12 @@
 .mission-card.mission-locked{opacity:.48;filter:saturate(.45)}
 .mission-card.mission-locked .mission-icon{background:#222;border-color:#444;color:#999}
 .mission-card>button:disabled{cursor:not-allowed;opacity:.75}
+
+.scene{position:relative;touch-action:none}
+.joystick-hud{position:absolute;z-index:10;left:22px;bottom:48px;display:flex;flex-direction:column;align-items:center;gap:7px;pointer-events:none}
+.joystick-hud small{font:700 9px Inter,sans-serif;letter-spacing:2px;color:#eee;text-shadow:0 1px 5px #000}
+.joystick-base{width:136px;height:136px;border:1px solid rgba(255,255,255,.34);border-radius:50%;background:rgba(8,8,8,.48);box-shadow:inset 0 0 0 10px rgba(255,255,255,.035),0 5px 22px #0008;position:relative;pointer-events:auto;touch-action:none;user-select:none}
+.joystick-axis{position:absolute;display:block;background:rgba(255,255,255,.16);pointer-events:none}
+.joystick-axis.horizontal{height:1px;left:14px;right:14px;top:50%}.joystick-axis.vertical{width:1px;top:14px;bottom:14px;left:50%}
+.joystick-knob{position:absolute;left:50%;top:50%;width:54px;height:54px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ff7b84,#b51220 74%);border:2px solid rgba(255,255,255,.72);box-shadow:0 3px 12px #0009;pointer-events:none}
+@media(max-width:850px){.scene{height:calc(100dvh - 100px);min-height:460px;max-height:none}.joystick-hud{left:16px;bottom:32px}.joystick-base{width:142px;height:142px}}
