@@ -2,8 +2,9 @@
 import { createClient, SupabaseClient, RealtimeChannel } from "@supabase/supabase-js";
 import type { PlayerState } from "./types";
 
-const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+const viteEnv = (import.meta as unknown as { env?: Record<string, string | undefined> }).env;
+const url = viteEnv?.VITE_SUPABASE_URL;
+const key = viteEnv?.VITE_SUPABASE_ANON_KEY;
 
 export class WorldRealtime {
   client: SupabaseClient | null = null;
