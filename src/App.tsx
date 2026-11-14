@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas } from "@react-three/fiber";
-import { Grid, OrbitControls, PerspectiveCamera, Environment } from "@react-three/drei";
+import { Grid, OrbitControls, PerspectiveCamera } from "@react-three/drei";
 import { Avatar } from "./Avatar";
 import { WorldRealtime } from "./realtime";
 import type { ClipName, PlayerState } from "./types";
@@ -13,14 +13,16 @@ const initial = (id: string, name: string): PlayerState => ({
 });
 
 function Scene({ local, remotes }: { local: PlayerState; remotes: PlayerState[] }) {
-  return <Canvas shadows dpr={[1,1.8]}>
+  return <Canvas shadows dpr={[1,1.35]} fallback={<div className="webgl-fallback">Tu navegador no ha podido iniciar WebGL. Puedes seguir usando el perfil y la Academia; prueba Chrome actualizado para activar la vista 3D.</div>}>
     <PerspectiveCamera makeDefault position={[3.8,2.5,5.5]} fov={42}/>
     <ambientLight intensity={1.1}/>
     <directionalLight position={[4,7,5]} intensity={2.1} castShadow/>
-    <Environment preset="city"/>
+    <hemisphereLight intensity={0.65} groundColor="#242424"/>
     <Grid args={[30,30]} cellSize={.5} cellThickness={.5} sectionSize={2} sectionThickness={1} fadeDistance={24} infiniteGrid/>
-    <Avatar state={local} local/>
-    {remotes.map(p => <Avatar key={p.playerId} state={p}/>)}
+    <Suspense fallback={null}>
+      <Avatar state={local} local/>
+      {remotes.map(p => <Avatar key={p.playerId} state={p}/>)}
+    </Suspense>
     <OrbitControls target={[0,1,0]} minDistance={2.5} maxDistance={12} maxPolarAngle={Math.PI*.49}/>
   </Canvas>;
 }
