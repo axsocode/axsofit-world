@@ -26,7 +26,7 @@ function Radar({values}:{values:typeof demo}) {
 }
 function Metric({label,value,unit="",note}:{label:string;value:string;unit?:string;note?:string}) {return <div className="metric-card"><small>{label}</small><strong>{value}<em>{unit}</em></strong>{note&&<span>{note}</span>}</div>}
 
-export function ProfilePanel({status,players,playerId,remotes,speed,setSpeed,setClip}:{status:string;players:number;playerId:string;remotes:{playerId:string;name:string}[];speed:number;setSpeed:(v:number)=>void;setClip:(c:ClipName)=>void;onClose:()=>void}) {
+export function ProfilePanel({status,players,playerId,remotes,speed,setSpeed,setClip,onClose}:{status:string;players:number;playerId:string;remotes:{playerId:string;name:string}[];speed:number;setSpeed:(v:number)=>void;setClip:(c:ClipName)=>void;onClose:()=>void}) {
  const [tab,setTab]=useState<Tab>("avatar");
  const [doneMissions,setDoneMissions]=useState<string[]>([]);
  const [activeWeek,setActiveWeek]=useState(1);
@@ -46,7 +46,7 @@ export function ProfilePanel({status,players,playerId,remotes,speed,setSpeed,set
   const requiredLevel=weekMissions.length?Math.min(...weekMissions.map(m=>m.unlockLevel)):Infinity;
   return currentLevel>=requiredLevel&&(week===1||missions.filter(m=>m.week<week).every(m=>doneMissions.includes(m.id)));
  };
- return <aside className="panel profile-panel">
+ return <aside className="panel profile-panel">\n  <button className="profile-close" type="button" onClick={onClose} aria-label="Cerrar menú">×</button>
   <div className="profile-heading"><div><span className="eyebrow">PLAYER PROFILE · RPG SYSTEM</span><h1>Tu personaje<span>.</span></h1><p>Tu rendimiento se convierte en atributos y progresión.</p></div><div className="level-badge"><small>NIVEL</small><b>{currentLevel}</b></div></div>
   <div className="xp-block"><div><b>ATLETA EN DESARROLLO</b><span>2.450 / 3.000 XP</span></div><div className="xp-track"><i/></div></div>
   <nav className="profile-tabs" aria-label="Secciones del perfil">{tabs.map(t=><button key={t.id} className={tab===t.id?"selected":""} onClick={()=>setTab(t.id)}>{t.short}</button>)}</nav>
