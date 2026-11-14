@@ -1,16 +1,41 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
-import { AnimationAction, AnimationMixer, LoopOnce, LoopRepeat, Object3D } from "three";
+import { AnimationAction, AnimationMixer, Box3, Group, LoopOnce, LoopRepeat, Object3D, Vector3 } from "three";
 import { SkeletonUtils } from "three-stdlib";
 import type { ClipName, PlayerState } from "./types";
 
 const MODEL_URL = `${import.meta.env.BASE_URL}models/axsofit-humanoid-rig.glb`;
 
 type Props = { state: PlayerState; local?: boolean; onLoaded?: (clips: string[]) => void };
+
+function createUprightModel(model: Object3D) {
+  // Detecta si el GLB fue exportado acostado (eje X o Z) y lo convierte
+  // al sistema Y-up que utiliza Three.js. La corrección se aplica al
+  // contenedor, no al esqueleto, para conservar las animaciones del rig.
+  model.updateMatrixWorld(true);
+  const sourceBounds = new Box3().setFromObject(model);
+  const size = sourceBounds.getSize(new Vector3());
+  const wrapper = new Group();
+
+  if (size.x > size.y * 1.15 && size.x >= size.z) {
+    wrapper.rotation.z = Math.PI / 2; // +X pasa a +Y
+  } else if (size.z > size.y * 1.15 && size.z > size.x) {
+    wrapper.rotation.x = -Math.PI / 2; // +Z pasa a +Y
+  }
+
+  wrapper.add(model);
+  wrapper.updateMatrixWorld(true);
+  const uprightBounds = new Box3().setFromObject(wrapper);
+  wrapper.position.y -= uprightBounds.min.y;
+  wrapper.updateMatrixWorld(true);
+  return wrapper;
+}
+
 export function Avatar({ state, local = false, onLoaded }: Props) {
   const gltf = useGLTF(MODEL_URL);
   const model = useMemo(() => SkeletonUtils.clone(gltf.scene) as Object3D, [gltf.scene]);
+  const uprightModel = useMemo(() => createUprightModel(model), [model]);
   const mixer = useMemo(() => new AnimationMixer(model), [model]);
   const actions = useRef<Record<string, AnimationAction>>({});
   const current = useRef<string>("");
@@ -53,8 +78,8 @@ export function Avatar({ state, local = false, onLoaded }: Props) {
   }, [state.clip, state.sequenceId, state.startServerTime, state.playbackRate, local]);
 
   useFrame((_, delta) => mixer.update(Math.min(delta, .05)));
-  return <group position={state.position} rotation={[0, state.rotation, 0]} scale={1}>
-    <primitive object={model} />
+  return <group position={state.position} rotation={[0, state.rotation, 0]}>
+    <primitive object={uprightModel} />
     {!local && <mesh position={[0, 1.88, 0]}><sphereGeometry args={[.035, 12, 12]}/><meshBasicMaterial color="#e11d2e"/></mesh>}
   </group>;
 }
