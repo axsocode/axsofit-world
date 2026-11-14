@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ClipName } from "./types";
 
-type Tab = "avatar" | "academy" | "body" | "strength" | "endurance" | "cardio" | "activity" | "axcircuit" | "history" | "achievements" | "stats";
+export type ProfileTab = "avatar" | "academy" | "body" | "strength" | "endurance" | "cardio" | "activity" | "axcircuit" | "history" | "achievements" | "stats";
+type Tab = ProfileTab;
 const tabs: {id:Tab; label:string; short:string}[] = [
   {id:"avatar",label:"Avatar",short:"AVATAR"}, {id:"academy",label:"Academia",short:"ACADEMIA"}, {id:"body",label:"Composición",short:"CUERPO"},
   {id:"strength",label:"Fuerza",short:"FUERZA"}, {id:"endurance",label:"Resistencia",short:"RESIST."},
@@ -26,8 +27,9 @@ function Radar({values}:{values:typeof demo}) {
 }
 function Metric({label,value,unit="",note}:{label:string;value:string;unit?:string;note?:string}) {return <div className="metric-card"><small>{label}</small><strong>{value}<em>{unit}</em></strong>{note&&<span>{note}</span>}</div>}
 
-export function ProfilePanel({status,players,playerId,remotes,speed,setSpeed,setClip,onClose}:{status:string;players:number;playerId:string;remotes:{playerId:string;name:string}[];speed:number;setSpeed:(v:number)=>void;setClip:(c:ClipName)=>void;onClose:()=>void}) {
- const [tab,setTab]=useState<Tab>("avatar");
+export function ProfilePanel({selectedTab="avatar",status,players,playerId,remotes,speed,setSpeed,setClip,onClose}:{selectedTab?:ProfileTab;status:string;players:number;playerId:string;remotes:{playerId:string;name:string}[];speed:number;setSpeed:(v:number)=>void;setClip:(c:ClipName)=>void;onClose:()=>void}) {
+ const [tab,setTab]=useState<Tab>(selectedTab);
+ useEffect(()=>setTab(selectedTab),[selectedTab]);
  const [doneMissions,setDoneMissions]=useState<string[]>([]);
  const [activeWeek,setActiveWeek]=useState(1);
  const currentLevel = 12; // Nivel ilustrativo hasta conectar el motor RPG persistente.
