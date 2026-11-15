@@ -25,7 +25,7 @@ export function AttributePanel() {
       setNotice(`El valor está fuera de la escala provisional (${definition.min}–${definition.max} ${definition.unit}). Revisa la unidad y el protocolo.`);
       return;
     }
-    setHistory(current => saveAssessment(current, id, value));
+    setHistory(current => saveAssessment(current, id, value, notes[id]));
     setValues(current => ({ ...current, [id]: "" }));
     setNotice("Evaluación añadida al historial local. La puntuación sigue siendo provisional.");
   };
@@ -69,7 +69,7 @@ export function AttributePanel() {
         const definition = ATTRIBUTE_DEFINITIONS.find(def => def.id === item.id)!;
         return <div className="rpg-history-row" key={`${item.id}-${item.recordedAt}-${index}`}>
           <div><b>{definition.name}</b><small>{new Date(item.recordedAt).toLocaleString("es-ES")} · {item.protocol}</small></div>
-          <strong>{item.value} {item.unit}<small>{item.score}/100</small></strong>
+          <strong>{item.value} {item.unit}<small>{item.score}/100</small>{item.note && <small>{item.note}</small>}</strong>
         </div>;
       })}
     </div>
