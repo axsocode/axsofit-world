@@ -1,11 +1,11 @@
-import { scoreAttribute, type AttributeId, type AttributeRecord } from "./attributes";
+import { ATTRIBUTE_DEFINITIONS, scoreAttribute, type AttributeId, type AttributeRecord } from "./attributes";
 const KEY = "axsofit-world:rpg-attributes:v1";
 export function loadAttributes(): AttributeRecord {
   if (typeof window === "undefined") return {};
   try { return JSON.parse(window.localStorage.getItem(KEY) || "{}") as AttributeRecord; } catch { return {}; }
 }
 export function saveAssessment(current: AttributeRecord, id: AttributeId, value: number): AttributeRecord {
-  const definition = (awaitlessDefinitions()).find(item => item.id === id);
+  const definition = ATTRIBUTE_DEFINITIONS.find(item => item.id === id);
   if (!definition || !Number.isFinite(value) || value <= 0) return current;
   const next: AttributeRecord = {
     ...current,
@@ -20,12 +20,4 @@ export function saveAssessment(current: AttributeRecord, id: AttributeId, value:
 export function clearAssessments(): AttributeRecord {
   try { if (typeof window !== "undefined") window.localStorage.removeItem(KEY); } catch { /* local storage unavailable */ }
   return {};
-}
-function awaitlessDefinitions() {
-  // Kept synchronous so this module has no backend or async dependency.
-  return [
-    { id: "strength", unit: "× peso corporal" }, { id: "endurance", unit: "metros" },
-    { id: "recovery", unit: "lpm" }, { id: "speed", unit: "segundos" },
-    { id: "agility", unit: "segundos" }
-  ] as const;
 }
