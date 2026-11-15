@@ -7,6 +7,7 @@ export type AttributeAssessment = {
   recordedAt: string;
   protocol: string;
   status: "demo" | "user-entered";
+  note?: string;
 };
 export const ATTRIBUTE_DEFINITIONS: Array<{
   id: AttributeId; name: string; metric: string; unit: string; protocol: string; min: number; max: number; higherIsBetter: boolean;
