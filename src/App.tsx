@@ -7,6 +7,7 @@ import { WorldRealtime } from "./realtime";
 import type { ClipName, PlayerState } from "./types";
 import { ProfilePanel } from "./ProfilePanel";
 import type { ProfileTab } from "./ProfilePanel";
+import { FaceLab } from "./features/face-lab/FaceLab";
 
 const makeId = () => crypto.randomUUID();
 const initial = (id: string, name: string): PlayerState => ({
@@ -65,6 +66,7 @@ export default function App() {
   const [players,setPlayers] = useState(1);
   const [speed,setSpeed] = useState(1);
   const [profileOpen,setProfileOpen] = useState(false);
+  const [faceLabOpen,setFaceLabOpen] = useState(false);
   const [selectedProfileTab,setSelectedProfileTab] = useState<ProfileTab>("avatar");
   const radialActions: {id:ProfileTab; label:string; icon:string}[] = [
     {id:"avatar",label:"Avatar",icon:"◉"}, {id:"academy",label:"Academia",icon:"⌂"},
@@ -121,11 +123,12 @@ export default function App() {
 
   const action=(clip:ClipName)=>setClip(clip);
   return <main className="app">
-    <header className="topbar"><div className="brand"><span className="mark">AX</span><div><b>AXSOFIT WORLD</b><small>HUMAN PERFORMANCE · AVATAR LAB</small></div></div><div className="status"><i className={status.startsWith("ONLINE")?"online":""}/>{status}</div></header>
+    <header className="topbar"><div className="brand"><span className="mark">AX</span><div><b>AXSOFIT WORLD</b><small>HUMAN PERFORMANCE · AVATAR LAB</small></div></div><div className="topbar-tools"><button className="face-lab-trigger" type="button" onClick={()=>setFaceLabOpen(true)}>◉ FACE LAB</button><div className="status"><i className={status.startsWith("ONLINE")?"online":""}/>{status}</div></div></header>
     <section className="workspace">
       <div className="scene"><Scene local={me} remotes={Object.values(remotes)}/><VirtualJoystick stick={stick}/><div className={`radial-actions ${profileOpen ? "expanded" : ""}`} aria-label="Acciones rápidas"><button className="radial-toggle" type="button" aria-label={profileOpen ? "Cerrar acciones" : "Abrir acciones"} aria-expanded={profileOpen} onClick={()=>setProfileOpen(v=>!v)}>{profileOpen ? "×" : "＋"}</button>{radialActions.map((item,index)=><button key={item.id} type="button" className={`radial-action radial-action-${index+1}`} aria-label={item.label} title={item.label} onClick={()=>openProfileTab(item.id)}><span aria-hidden="true">{item.icon}</span><small>{item.label}</small></button>)}</div><div className="scene-tag">TERCERA PERSONA · CÁMARA FIJA</div><div className="scene-foot"><span>172 CM · MESOMORPH</span><span>{players} JUGADOR{players===1?"":"ES"}</span></div></div>
       <div className={`profile-drawer ${profileOpen ? "open" : ""}`} aria-hidden={!profileOpen}><ProfilePanel selectedTab={selectedProfileTab} status={status} players={players} playerId={rt.playerId} remotes={Object.values(remotes)} speed={speed} setSpeed={setSpeed} setClip={setClip} onClose={()=>setProfileOpen(false)}/></div>
     </section>
+    {faceLabOpen && <FaceLab onClose={()=>setFaceLabOpen(false)}/>}
     <footer>AXSOFIT WORLD <span>·</span> PROTOTIPO INTERACTIVO 0.1</footer>
   </main>;
 }
