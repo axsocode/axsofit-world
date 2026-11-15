@@ -17,7 +17,7 @@ export function AttributePanel() {
   const save = (id: AttributeId) => {
     const value = Number(values[id].replace(",", "."));
     const definition = ATTRIBUTE_DEFINITIONS.find(item => item.id === id)!;
-    if (!values[id].trim() || !Number.isFinite(value) || value <= 0) {
+    if (!values[id].trim() || !Number.isFinite(value)) {
       setNotice("Introduce un resultado numérico válido mayor que cero.");
       return;
     }
