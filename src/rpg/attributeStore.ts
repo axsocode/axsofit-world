@@ -22,12 +22,12 @@ function persist(history: AssessmentHistory): AssessmentHistory {
 
 export function loadAssessmentHistory(): AssessmentHistory { return readStored(); }
 
-export function saveAssessment(history: AssessmentHistory, id: AttributeId, value: number): AssessmentHistory {
+export function saveAssessment(history: AssessmentHistory, id: AttributeId, value: number, note = ""): AssessmentHistory {
   const definition = ATTRIBUTE_DEFINITIONS.find(item => item.id === id);
   if (!definition || !Number.isFinite(value) || value <= 0) return history;
   const record: AttributeAssessment = {
     id, value, unit: definition.unit, score: scoreAttribute(id, value),
-    recordedAt: new Date().toISOString(), protocol: definition.protocol, status: "user-entered"
+    recordedAt: new Date().toISOString(), protocol: definition.protocol, status: "user-entered", note: note.trim() || undefined
   };
   return persist([...history, record]);
 }
