@@ -38,7 +38,7 @@ function FaceScene({ model, controls, clips, playing }: { model: Object3D; contr
     mixer.update(Math.min(delta, 0.05));
     if (group.current) group.current.rotation.y = Math.sin(performance.now() * 0.00025) * 0.12;
   });
-  return <group ref={group}><primitive object={model} /></group>;
+  return <group ref={group}><FaceScene model={model} controls={morphs} clips={clips} playing={playing} /></group>;
 }
 
 const presets: Record<string, (name: string) => number> = {
