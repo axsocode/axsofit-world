@@ -8,8 +8,6 @@ export type AttributeAssessment = {
   protocol: string;
   status: "demo" | "user-entered";
 };
-export type AttributeRecord = Partial<Record<AttributeId, AttributeAssessment>>;
-
 export const ATTRIBUTE_DEFINITIONS: Array<{
   id: AttributeId; name: string; metric: string; unit: string; protocol: string; min: number; max: number; higherIsBetter: boolean;
 }> = [
@@ -19,7 +17,7 @@ export const ATTRIBUTE_DEFINITIONS: Array<{
   { id: "speed", name: "Velocidad", metric: "Sprint de 20 m", unit: "segundos", protocol: "Tiempo de sprint de 20 m con salida y cronometraje estandarizados.", min: 2.5, max: 6, higherIsBetter: false },
   { id: "agility", name: "Agilidad", metric: "Shuttle 5-10-5", unit: "segundos", protocol: "Tiempo total en test 5-10-5 con recorrido, superficie y giro estandarizados.", min: 4, max: 20, higherIsBetter: false }
 ];
-
+// Prototype-only linear normalization. These bands are not validated population norms or clinical cut-offs.
 export function scoreAttribute(id: AttributeId, value: number): number {
   const definition = ATTRIBUTE_DEFINITIONS.find(item => item.id === id);
   if (!definition || !Number.isFinite(value)) return 0;
@@ -27,7 +25,6 @@ export function scoreAttribute(id: AttributeId, value: number): number {
   const normalized = definition.higherIsBetter ? raw : 1 - raw;
   return Math.round(Math.max(0, Math.min(1, normalized)) * 100);
 }
-
 export function attributeLevel(score: number): number {
   return Math.max(1, Math.min(100, Math.round(score)));
 }
