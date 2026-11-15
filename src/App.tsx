@@ -67,7 +67,7 @@ export default function App() {
   const [profileOpen,setProfileOpen] = useState(false);
   const [selectedProfileTab,setSelectedProfileTab] = useState<ProfileTab>("avatar");
   const radialActions: {id:ProfileTab; label:string; icon:string}[] = [
-    {id:"avatar",label:"Avatar",icon:"◉"}, {id:"academy",label:"Academia",icon:"⌂"},
+    {id:"avatar",label:"Avatar",icon:"◉"}, {id:"rpg",label:"RPG",icon:"★"}, {id:"academy",label:"Academia",icon:"⌂"},
     {id:"body",label:"Composición",icon:"▥"}, {id:"strength",label:"Fuerza",icon:"✚"},
     {id:"cardio",label:"Cardio",icon:"♥"}, {id:"axcircuit",label:"AXcircuit",icon:"◆"}
   ];
