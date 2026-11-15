@@ -64,3 +64,31 @@
 .radial-action:active,.radial-action:focus-visible{border-color:#fff;background:#0c3943;outline:2px solid #53e3f4}
 @media(max-width:850px){.radial-actions{width:245px;height:245px}.radial-actions::before{background:linear-gradient(135deg,rgba(5,17,22,.92),rgba(5,10,14,.97))}.radial-toggle{width:54px;height:54px;right:10px;bottom:10px}.radial-action{width:64px;height:64px}.radial-action span{font-size:19px}.radial-action small{font-size:7px}.radial-actions.expanded .radial-action-1{right:18px;bottom:116px}.radial-actions.expanded .radial-action-2{right:57px;bottom:85px}.radial-actions.expanded .radial-action-3{right:91px;bottom:53px}.radial-actions.expanded .radial-action-4{right:125px;bottom:18px}.radial-actions.expanded .radial-action-5{right:18px;bottom:51px}.radial-actions.expanded .radial-action-6{right:63px;bottom:16px}}
 @media(max-width:380px){.radial-actions{width:218px;height:218px}.radial-action{width:58px;height:58px}.radial-actions.expanded .radial-action-1{bottom:104px}.radial-actions.expanded .radial-action-2{right:51px;bottom:76px}.radial-actions.expanded .radial-action-3{right:82px;bottom:47px}.radial-actions.expanded .radial-action-4{right:112px;bottom:15px}.radial-actions.expanded .radial-action-5{bottom:46px}.radial-actions.expanded .radial-action-6{right:57px;bottom:13px}}
+
+/* AXSOFIT AI COMPANION — isolated DOM overlay */
+.companion-widget{position:absolute;z-index:8;left:18px;top:18px;width:min(350px,calc(100% - 36px));font-family:Inter,system-ui,sans-serif;color:#edf6f8}
+.companion-launcher{display:flex;align-items:center;gap:11px;width:100%;padding:10px 14px;border:1px solid rgba(90,220,235,.28);border-radius:16px;background:rgba(5,17,23,.91);color:inherit;text-align:left;cursor:pointer;box-shadow:0 8px 28px #0005;backdrop-filter:blur(12px)}
+.companion-orb{width:38px;height:38px;flex:0 0 38px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#e12a3b,#741322);font-weight:900;letter-spacing:-1px;color:white}
+.companion-launcher>span:nth-child(2),.companion-header>div{display:flex;flex-direction:column;gap:3px;flex:1}
+.companion-launcher b,.companion-header b{font-size:12px;letter-spacing:.7px}
+.companion-launcher small,.companion-header small{font-size:10px;color:#a9bec5}
+.companion-launcher i{font-size:9px;color:#4bd49b}
+.companion-card{overflow:hidden;border:1px solid rgba(90,220,235,.28);border-radius:17px;background:rgba(5,15,20,.96);box-shadow:0 12px 36px #0008;backdrop-filter:blur(14px)}
+.companion-header{display:flex;align-items:center;gap:10px;padding:12px;border-bottom:1px solid #ffffff18}
+.companion-header>button{border:0;background:transparent;color:#d8e8eb;font-size:24px;cursor:pointer}
+.companion-messages{display:flex;flex-direction:column;gap:9px;padding:13px;max-height:190px;overflow-y:auto}
+.companion-message{max-width:88%;padding:10px 12px;border-radius:13px;font-size:12px;line-height:1.5}
+.companion-message.companion{align-self:flex-start;background:#172a31;color:#e6f1f3;border-bottom-left-radius:4px}
+.companion-message.user{align-self:flex-end;background:#8d1d2a;color:white;border-bottom-right-radius:4px}
+.companion-mood{padding:0 12px 11px}
+.companion-mood>small{font-size:9px;letter-spacing:1px;color:#9bb4bb;font-weight:800}
+.companion-mood>div{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:7px}
+.companion-mood button{border:1px solid #ffffff20;border-radius:9px;background:#10232a;color:#dce9eb;padding:7px 5px;font-size:11px;cursor:pointer}
+.companion-mood button span{font-size:10px}
+.companion-input{display:flex;gap:7px;padding:10px 12px;border-top:1px solid #ffffff18}
+.companion-input input{min-width:0;flex:1;border:1px solid #ffffff24;border-radius:9px;background:#0d2027;color:white;padding:10px;font-size:12px;outline:none}
+.companion-input input:focus{border-color:#54d7e8}
+.companion-input button{border:0;border-radius:9px;background:#b91f32;color:white;padding:0 12px;font-size:11px;font-weight:800;cursor:pointer}
+.companion-input button:disabled{opacity:.45;cursor:not-allowed}
+.companion-disclaimer{display:block;padding:0 12px 10px;color:#819ba2;font-size:9px}
+@media(max-width:520px){.companion-widget{left:10px;top:10px;width:min(320px,calc(100% - 20px))}.companion-messages{max-height:150px}.companion-launcher{padding:8px 11px}}
