@@ -2,6 +2,7 @@ import { useState } from "react";
 import { createSnapshot, TRAINING_PATHS } from "./progression";
 import { awardDemoXp, loadRpgData, resetDemoRpg } from "./demoStore";
 import type { RpgSaveData, TrainingPathId } from "./types";
+import { AttributePanel } from "./AttributePanel";
 
 export function RPGPanel() {
   const [data, setData] = useState<RpgSaveData>(() => loadRpgData());
@@ -51,6 +52,8 @@ export function RPGPanel() {
       {notice && <p className="rpg-notice" role="status">{notice}</p>}
       <p className="disclaimer">Esta recompensa es ficticia y solo sirve para probar la progresión. No certifica rendimiento físico ni modifica atributos biométricos.</p>
     </div>
+
+    <AttributePanel />
 
     <div className="subsection">
       <h3>Últimas transacciones</h3>
