@@ -24,7 +24,7 @@ export function loadAssessmentHistory(): AssessmentHistory { return readStored()
 
 export function saveAssessment(history: AssessmentHistory, id: AttributeId, value: number, note = ""): AssessmentHistory {
   const definition = ATTRIBUTE_DEFINITIONS.find(item => item.id === id);
-  if (!definition || !Number.isFinite(value) || value <= 0) return history;
+  if (!definition || !Number.isFinite(value) || value < definition.min || value > definition.max) return history;
   const record: AttributeAssessment = {
     id, value, unit: definition.unit, score: scoreAttribute(id, value),
     recordedAt: new Date().toISOString(), protocol: definition.protocol, status: "user-entered", note: note.trim() || undefined
