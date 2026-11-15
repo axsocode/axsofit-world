@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import type { ClipName } from "./types";
+import { RPGPanel } from "./rpg/RPGPanel";
 
-export type ProfileTab = "avatar" | "academy" | "body" | "strength" | "endurance" | "cardio" | "activity" | "axcircuit" | "history" | "achievements" | "stats";
+export type ProfileTab = "avatar" | "academy" | "body" | "strength" | "endurance" | "cardio" | "activity" | "axcircuit" | "history" | "achievements" | "stats" | "rpg";
 type Tab = ProfileTab;
 const tabs: {id:Tab; label:string; short:string}[] = [
-  {id:"avatar",label:"Avatar",short:"AVATAR"}, {id:"academy",label:"Academia",short:"ACADEMIA"}, {id:"body",label:"Composición",short:"CUERPO"},
+  {id:"avatar",label:"Avatar",short:"AVATAR"}, {id:"rpg",label:"RPG Engine",short:"RPG"}, {id:"academy",label:"Academia",short:"ACADEMIA"}, {id:"body",label:"Composición",short:"CUERPO"},
   {id:"strength",label:"Fuerza",short:"FUERZA"}, {id:"endurance",label:"Resistencia",short:"RESIST."},
   {id:"cardio",label:"Cardio",short:"CARDIO"}, {id:"activity",label:"Actividad",short:"ACTIV."},
   {id:"axcircuit",label:"AXcircuit",short:"AXCIRCUIT"}, {id:"history",label:"Historial",short:"HIST."},
@@ -53,6 +54,7 @@ export function ProfilePanel({selectedTab="avatar",status,players,playerId,remot
   <div className="profile-heading"><div><span className="eyebrow">PLAYER PROFILE · RPG SYSTEM</span><h1>Tu personaje<span>.</span></h1><p>Tu rendimiento se convierte en atributos y progresión.</p></div><div className="level-badge"><small>NIVEL</small><b>{currentLevel}</b></div></div>
   <div className="xp-block"><div><b>ATLETA EN DESARROLLO</b><span>2.450 / 3.000 XP</span></div><div className="xp-track"><i/></div></div>
   <nav className="profile-tabs" aria-label="Secciones del perfil">{tabs.map(t=><button key={t.id} className={tab===t.id?"selected":""} onClick={()=>setTab(t.id)}>{t.short}</button>)}</nav>
+  {tab==="rpg"&&<RPGPanel/>}
   {tab==="avatar"&&<>
    <div className="control-group"><label>GESTOS</label><button className="action" onClick={()=>setClip("Saludar")}><strong>✋</strong><span><b>Saludar</b><small>BRAZO + MANO</small></span><kbd>H</kbd></button><button className="action" onClick={()=>setClip("Celebrar_Salto")}><strong>✦</strong><span><b>Celebrar</b><small>BRAZOS ARRIBA + SALTO</small></span><kbd>C</kbd></button></div>
    <div className="control-group"><div className="range-head"><label>VELOCIDAD DE ANIMACIÓN</label><b>{speed.toFixed(1)}×</b></div><input type="range" min=".5" max="1.8" step=".1" value={speed} onChange={e=>setSpeed(Number(e.target.value))}/></div>
