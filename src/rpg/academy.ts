@@ -10,6 +10,7 @@ export type MicrocycleKind = "adaptation" | "development" | "intensification" | 
 export type SessionStatus = "pending" | "completed" | "validated";
 export type AssessmentStatus = "pending" | "passed" | "failed";
 export type MissionKind = "training" | "technique" | "habit" | "assessment" | "recovery";
+export type MissionStatus = "pending" | "completed" | "validated";
 
 export type LevelMilestone = {
   level: number;
@@ -104,6 +105,9 @@ export type AcademyMission = {
   target: { metric: string; operator: ">=" | "<=" | "==" ; value: number; unit: string };
   xpReward: number;
   mandatory: boolean;
+  status: MissionStatus;
+  completedAt?: string;
+  evidence?: Record<string, number | string | boolean>;
 };
 
 export type AcademySession = {
@@ -168,7 +172,7 @@ export function passMicrocycle(record: MicrocycleRecord, now = new Date().toISOS
   const gate = evaluateMicrocycleGate(record);
   if (!gate.canPass) throw new Error(gate.reasons.join(" "));
   if (record.passedAt) return record;
-  const missionXp = record.missions.filter((m) => m.mandatory).reduce((sum, m) => sum + m.xpReward, 0);
+  const missionXp = record.missions.filter((m) => m.status === "completed" || m.status === "validated").reduce((sum, m) => sum + m.xpReward, 0);
   return { ...record, passedAt: now, awardedXp: missionXp };
 }
 
