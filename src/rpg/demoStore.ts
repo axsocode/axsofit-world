@@ -51,7 +51,7 @@ export function loadRpgData(): RpgSaveData {
         assignments: Array.isArray(legacy.assignments) ? legacy.assignments : copyInitial().assignments,
         transactions: Array.isArray(legacy.transactions) ? legacy.transactions : []
       };
-      return save(migrated);
+      return saveRpgData(migrated);
     }
     return copyInitial();
   } catch {
@@ -59,7 +59,7 @@ export function loadRpgData(): RpgSaveData {
   }
 }
 
-function save(data: RpgSaveData): RpgSaveData {
+export function saveRpgData(data: RpgSaveData): RpgSaveData {
   if (typeof window !== "undefined") {
     try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch { /* Storage may be unavailable. */ }
   }
@@ -81,7 +81,7 @@ export function awardDemoXp(data: RpgSaveData, pathId: TrainingPathId, amount = 
     pathId,
     createdAt: new Date().toISOString()
   };
-  return save({
+  return saveRpgData({
     ...data,
     totalXp: data.totalXp + amount,
     pathXp: { ...data.pathXp, [pathId]: data.pathXp[pathId] + amount },
@@ -90,5 +90,5 @@ export function awardDemoXp(data: RpgSaveData, pathId: TrainingPathId, amount = 
 }
 
 export function resetDemoRpg(): RpgSaveData {
-  return save(copyInitial());
+  return saveRpgData(copyInitial());
 }
