@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   PATH_CURRICULA,
   evaluateMicrocycleGate,
@@ -87,6 +87,10 @@ export function AcademyPanel() {
   const activeLevel = rpg.pathLevels[activePath];
   const [record, setRecord] = useState(() => readRecord(activePath, activeLevel));
   const [notice, setNotice] = useState("");
+  useEffect(() => {
+    setRecord(readRecord(activePath, activeLevel));
+    setNotice("");
+  }, [activePath, activeLevel]);
   const curriculum = PATH_CURRICULA[activePath];
   const gate = useMemo(() => evaluateMicrocycleGate(record), [record]);
   const template = curriculum.microcycleTemplates[0];
