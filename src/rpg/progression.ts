@@ -8,9 +8,11 @@ export const TRAINING_PATHS: TrainingPath[] = [
 ];
 
 export const INITIAL_RPG_DATA: RpgSaveData = {
-  version: 1,
-  totalXp: 2450,
-  pathXp: { strength: 650, endurance: 0, hybrid: 900, dexterity: 0 },
+  version: 2,
+  totalXp: 0,
+  pathXp: { strength: 0, endurance: 0, hybrid: 0, dexterity: 0 },
+  pathLevels: { strength: 1, endurance: 1, hybrid: 1, dexterity: 1 },
+  validatedMicrocycleIds: [],
   assignments: [
     { pathId: "hybrid", role: "primary" },
     { pathId: "strength", role: "secondary" }
@@ -18,42 +20,35 @@ export const INITIAL_RPG_DATA: RpgSaveData = {
   transactions: []
 };
 
-// Demo curve: each level requires 1,000 + 250 * (level - 1) XP.
-export function xpRequiredForLevel(level: number): number {
-  return 1000 + Math.max(0, level - 1) * 250;
+/** XP is a reward currency only. It does not determine academy levels. */
+export function xpRequiredForLevel(_level: number): number {
+  return 0;
 }
 
-export function levelFromXp(xp: number): { level: number; into: number; required: number } {
-  let remaining = Math.max(0, xp);
-  let level = 1;
-  while (level < 100) {
-    const required = xpRequiredForLevel(level);
-    if (remaining < required) return { level, into: remaining, required };
-    remaining -= required;
-    level += 1;
-  }
-  return { level: 100, into: 0, required: 0 };
+export function levelFromXp(_xp: number): { level: number; into: number; required: number } {
+  return { level: 1, into: 0, required: 0 };
 }
 
 export function isPathUnlocked(pathId: TrainingPathId, data: RpgSaveData): boolean {
   if (data.assignments.some(item => item.pathId === pathId)) return true;
   const primary = data.assignments.find(item => item.role === "primary");
-  return Boolean(primary && levelFromXp(data.pathXp[primary.pathId]).level >= 100);
+  return Boolean(primary && data.pathLevels[primary.pathId] >= 100);
 }
 
 export function createSnapshot(data: RpgSaveData): RpgSnapshot {
-  const global = levelFromXp(data.totalXp);
+  const primary = data.assignments.find(item => item.role === "primary");
+  const globalLevel = primary ? data.pathLevels[primary.pathId] : 1;
   return {
     totalXp: data.totalXp,
-    level: global.level,
-    xpIntoLevel: global.into,
-    xpForNextLevel: global.required,
-    levelProgress: global.required ? Math.min(100, global.into / global.required * 100) : 100,
+    level: globalLevel,
+    xpIntoLevel: 0,
+    xpForNextLevel: 0,
+    levelProgress: 0,
     assignments: data.assignments,
     paths: TRAINING_PATHS.map(path => ({
       ...path,
       xp: data.pathXp[path.id],
-      level: levelFromXp(data.pathXp[path.id]).level,
+      level: data.pathLevels[path.id],
       unlocked: isPathUnlocked(path.id, data)
     })),
     recentTransactions: [...data.transactions].slice(-5).reverse()
