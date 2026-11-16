@@ -6,3 +6,4 @@ export { ATTRIBUTE_DEFINITIONS, scoreAttribute, attributeLevel } from "./attribu
 export type { AttributeId, AttributeAssessment } from "./attributes";
 export { loadAssessmentHistory, saveAssessment, clearAssessments, latestAssessment, previousAssessment } from "./attributeStore";
 export type { AssessmentHistory } from "./attributeStore";
+export * from "./academy";
