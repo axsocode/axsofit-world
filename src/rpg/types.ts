@@ -26,6 +26,8 @@ export type RpgSaveData = {
   pathXp: Record<TrainingPathId, number>;
   /** Validated academy level. XP is deliberately not used to calculate this value. */
   pathLevels: Record<TrainingPathId, number>;
+  /** Prevents the same passed microcycle from granting a level twice. */
+  validatedMicrocycleIds: string[];
   assignments: PathAssignment[];
   transactions: XpTransaction[];
 };
