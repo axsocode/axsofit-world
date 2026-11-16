@@ -8,3 +8,4 @@ export { loadAssessmentHistory, saveAssessment, clearAssessments, latestAssessme
 export type { AssessmentHistory } from "./attributeStore";
 export * from "./academy";
 export * from "./pathSelection";
+export * from "./academyProgression";
