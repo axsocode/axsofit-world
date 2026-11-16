@@ -21,9 +21,11 @@ export type XpTransaction = {
 };
 
 export type RpgSaveData = {
-  version: 1;
+  version: 2;
   totalXp: number;
   pathXp: Record<TrainingPathId, number>;
+  /** Validated academy level. XP is deliberately not used to calculate this value. */
+  pathLevels: Record<TrainingPathId, number>;
   assignments: PathAssignment[];
   transactions: XpTransaction[];
 };
