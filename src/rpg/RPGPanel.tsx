@@ -3,6 +3,7 @@ import { createSnapshot, TRAINING_PATHS } from "./progression";
 import { awardDemoXp, loadRpgData, resetDemoRpg } from "./demoStore";
 import type { RpgSaveData, TrainingPathId } from "./types";
 import { AttributePanel } from "./AttributePanel";
+import { AcademyPanel } from "./AcademyPanel";
 
 export function RPGPanel() {
   const [data, setData] = useState<RpgSaveData>(() => loadRpgData());
@@ -51,6 +52,8 @@ export function RPGPanel() {
       {notice && <p className="rpg-notice" role="status">{notice}</p>}
       <p className="disclaimer">Recompensa ficticia para pruebas. No certifica rendimiento, no modifica atributos y no aumenta el nivel de academia.</p>
     </div>
+
+    <AcademyPanel />
 
     <AttributePanel />
 
