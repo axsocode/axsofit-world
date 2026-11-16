@@ -14,7 +14,7 @@ export type PathAssignment = {
 
 export type XpTransaction = {
   id: string;
-  source: "demo_challenge";
+  source: "demo_challenge" | "academy_microcycle";
   amount: number;
   pathId: TrainingPathId;
   createdAt: string;
