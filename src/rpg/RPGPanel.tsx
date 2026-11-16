@@ -15,27 +15,26 @@ export function RPGPanel() {
   const claimDemoXp = () => {
     if (!snapshot.paths.some(path => path.id === selectedPath && path.unlocked)) return;
     setData(current => awardDemoXp(current, selectedPath, 100));
-    setNotice("100 XP de demostración registrados en el historial local.");
+    setNotice("100 XP de demostración registrados. El nivel de la ruta no cambia.");
   };
 
   return <section className="tab-content rpg-engine">
-    <div className="section-title"><h2>RPG Engine</h2><span className="data-tag">LOCAL DEMO · V1</span></div>
+    <div className="section-title"><h2>RPG Engine</h2><span className="data-tag">LOCAL DEMO · V2</span></div>
     <div className="rpg-overview">
-      <div><small>NIVEL GLOBAL</small><strong>{snapshot.level}</strong></div>
+      <div><small>NIVEL DE ACADEMIA</small><strong>{snapshot.level}</strong></div>
       <div><small>EXPERIENCIA TOTAL</small><strong>{snapshot.totalXp.toLocaleString("es-ES")} <em>XP</em></strong></div>
     </div>
-    <div className="xp-track rpg-xp-track"><i style={{ width: `${snapshot.levelProgress}%` }}/></div>
-    <p className="rpg-muted">{snapshot.xpForNextLevel ? `${snapshot.xpIntoLevel.toLocaleString("es-ES")} / ${snapshot.xpForNextLevel.toLocaleString("es-ES")} XP para el siguiente nivel` : "Nivel máximo alcanzado"}</p>
+    <p className="rpg-muted">El nivel solo aumenta al aprobar microciclos. Los XP son recompensas y nunca desbloquean niveles ni rutas.</p>
 
     <div className="subsection">
       <h3>Rutas de entrenamiento</h3>
-      <p className="rpg-muted">Dos rutas activas: una principal y una secundaria. Las otras dos se desbloquean cuando la ruta principal alcanza el nivel 100.</p>
+      <p className="rpg-muted">Dos rutas activas: una principal y una secundaria. Las otras dos se desbloquean cuando la ruta principal alcanza el nivel 100 mediante microciclos aprobados.</p>
       <div className="rpg-path-list">
         {snapshot.paths.map(path => {
           const role = snapshot.assignments.find(item => item.pathId === path.id)?.role;
           return <button type="button" key={path.id} className={`rpg-path-card ${selectedPath === path.id ? "selected" : ""} ${!path.unlocked ? "locked" : ""}`} disabled={!path.unlocked} onClick={() => { setSelectedPath(path.id); setNotice(""); }}>
             <span className="rpg-path-top"><b>{path.name}</b><small>{role === "primary" ? "PRINCIPAL" : role === "secondary" ? "SECUNDARIA" : path.unlocked ? "DESBLOQUEADA" : "BLOQUEADA"}</small></span>
-            <span className="rpg-path-description">{path.unlocked ? path.description : "Alcanza nivel 100 en la ruta principal para desbloquear esta ruta."}</span>
+            <span className="rpg-path-description">{path.unlocked ? path.description : "Alcanza nivel 100 validado en la ruta principal para desbloquear esta ruta."}</span>
             <span className="rpg-path-bottom"><b>NIVEL {path.level}</b><span>{path.xp.toLocaleString("es-ES")} XP</span></span>
           </button>;
         })}
@@ -50,7 +49,7 @@ export function RPGPanel() {
       </select>
       <button type="button" className="outline-btn" onClick={claimDemoXp}>＋ Añadir 100 XP de prueba</button>
       {notice && <p className="rpg-notice" role="status">{notice}</p>}
-      <p className="disclaimer">Esta recompensa es ficticia y solo sirve para probar la progresión. No certifica rendimiento físico ni modifica atributos biométricos.</p>
+      <p className="disclaimer">Recompensa ficticia para pruebas. No certifica rendimiento, no modifica atributos y no aumenta el nivel de academia.</p>
     </div>
 
     <AttributePanel />
@@ -59,9 +58,9 @@ export function RPGPanel() {
       <h3>Últimas transacciones</h3>
       {snapshot.recentTransactions.length === 0
         ? <p className="rpg-muted">Todavía no hay recompensas registradas en esta sesión local.</p>
-        : snapshot.recentTransactions.map(item => <div className="data-row" key={item.id}><span>{item.pathId.toUpperCase()} · DEMO</span><b>+{item.amount} XP</b></div>)}
+        : snapshot.recentTransactions.map(item => <div className="data-row" key={item.id}><span>{item.pathId.toUpperCase()} · {item.source === "academy_microcycle" ? "ACADEMIA" : "DEMO"}</span><b>+{item.amount} XP</b></div>)}
     </div>
     <button type="button" className="outline-btn rpg-reset" onClick={() => { setData(resetDemoRpg()); setSelectedPath("hybrid"); setNotice("Datos de demostración restaurados."); }}>Restablecer datos de prueba</button>
-    <p className="disclaimer">Persistencia únicamente en este navegador mediante almacenamiento local. No se conecta a Supabase, no sincroniza entre dispositivos y no afecta a otros jugadores.</p>
+    <p className="disclaimer">Persistencia únicamente en este navegador mediante almacenamiento local. No se conecta a Supabase ni sincroniza entre dispositivos.</p>
   </section>;
 }
